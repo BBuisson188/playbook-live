@@ -1,4 +1,4 @@
-# Playbook Live Handoff
+﻿# Playbook Live Handoff
 
 ## Project summary
 
@@ -7,6 +7,46 @@ Playbook Live is a mobile-first basketball playbook web app. The goal is to let 
 The app should feel polished and finished, not like a throwaway beta. The intended style is a premium sports-tech coaching app: dark navy background, clean court, glassy panels, strong blue/red player markers, smooth animation, and phone-friendly controls.
 
 This version is a static vanilla HTML/CSS/JavaScript app. That is intentional so it can run easily on GitHub Pages and be saved to a mobile home screen.
+
+## Project locations
+
+- GitHub repository: https://github.com/BBuisson188/playbook-live
+- Preferred Git remote: `git@github.com:BBuisson188/playbook-live.git`
+- Live site: https://bbuisson188.github.io/playbook-live/
+- Local project folder: `C:\Users\bbuis\Local Docs\Codex\playbook-live`
+
+## Publishing notes
+
+Use SSH, not HTTPS, for repository publishing. The preferred remote is:
+
+```text
+git@github.com:BBuisson188/playbook-live.git
+```
+
+The normal publish flow is:
+
+```powershell
+git add .
+git commit -m "message"
+git pull --rebase
+git push
+```
+
+If `git push` is rejected with a message like `fetch first`, run:
+
+```powershell
+git pull --rebase
+git push
+```
+
+If Git write permissions fail with `.git/index.lock`, run this from normal PowerShell:
+
+```powershell
+cd "C:\Users\bbuis\Local Docs\Codex\playbook-live"
+icacls .git /reset /T
+icacls .git /inheritance:d /T
+git status
+```
 
 ## Files
 
@@ -74,11 +114,14 @@ Step N ending positions = Step N+1 starting positions
   name: 'New Play',
   description: '',
   tags: [],
+  courtType: 'half' | 'full' | null,
   createdAt: ISOString,
   updatedAt: ISOString,
   steps: Step[]
 }
 ```
+
+New plays intentionally start with `courtType: null` so the Editor prompts for Half or Full court before drawing begins. Existing plays without this field normalize to `full`.
 
 ### Player
 
@@ -363,6 +406,6 @@ Keep the app easy to deploy on GitHub Pages.
 - Use red numbered circles for defense, not Xs and Os.
 - The app should allow any number of players, including only one player.
 - All four line types are required from the beginning: cut, pass, dribble, screen.
-- The persistent bottom nav should be Create, Playbook, Review.
+- The persistent bottom nav should be Editor, Playbook, Review.
 - Manual GitHub save/load is required for cross-device use.
 - The user wants to conserve Codex credits, so this starter should be treated as the foundation rather than a disposable mockup.

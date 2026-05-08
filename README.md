@@ -1,4 +1,4 @@
-# Playbook Live
+﻿# Playbook Live
 
 A mobile-first basketball playbook web app for building step-based plays and reviewing them with animated playback.
 
@@ -7,8 +7,8 @@ This starter is intentionally built as a static app so it can run on GitHub Page
 ## What is included
 
 - Polished mobile-first interface
-- Create, Playbook, and Review screens
-- Full-court SVG whiteboard
+- Editor, Playbook, and Review screens
+- SVG editor layered over per-play half-court or full-court PNG backgrounds from `assets/`
 - Blue offense players numbered 1 to 5
 - Red defense players numbered 1 to 5
 - Basketball placement and possession attachment
@@ -82,7 +82,7 @@ For personal use, create a fine-grained GitHub token with repository Contents re
 
 ## Main usage flow
 
-1. Open Create.
+1. Open Editor.
 2. Tap Offense or Defense, then tap the court to place players.
 3. Tap Ball, then tap the court or a player.
 4. Select Cut, Pass, Dribble, or Screen.

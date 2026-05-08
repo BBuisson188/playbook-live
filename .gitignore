@@ -1,0 +1,16 @@
+.DS_Store
+Thumbs.db
+
+# Local editor and environment files
+.env
+.env.*
+.vscode/
+.idea/
+
+# Dependency/build output if the project is later migrated to a bundler
+node_modules/
+dist/
+build/
+
+# Local-only Git metadata artifacts
+git-meta/

@@ -1,4 +1,4 @@
-(() => {
+﻿(() => {
   'use strict';
 
   const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -64,9 +64,7 @@
       reviewSvg: document.getElementById('reviewSvg'),
       playName: document.getElementById('playName'),
       stepChip: document.getElementById('stepChip'),
-      reviewStepChip: document.getElementById('reviewStepChip'),
-      reviewTitle: document.getElementById('reviewTitle'),
-      selectionPanel: document.getElementById('selectionPanel'),
+      courtChooser: document.getElementById('courtChooser'),
       toast: document.getElementById('toast'),
       undoBtn: document.getElementById('undoBtn'),
       redoBtn: document.getElementById('redoBtn'),
@@ -74,14 +72,11 @@
       prevStepBtn: document.getElementById('prevStepBtn'),
       nextStepBtn: document.getElementById('nextStepBtn'),
       addBlankStepBtn: document.getElementById('addBlankStepBtn'),
-      deleteStepBtn: document.getElementById('deleteStepBtn'),
       savePlayBtn: document.getElementById('savePlayBtn'),
-      exportPlayBtn: document.getElementById('exportPlayBtn'),
       newPlayBtn: document.getElementById('newPlayBtn'),
-      importPlayBtn: document.getElementById('importPlayBtn'),
-      importFile: document.getElementById('importFile'),
       saveGitHubBtn: document.getElementById('saveGitHubBtn'),
       loadGitHubBtn: document.getElementById('loadGitHubBtn'),
+      exportPlaybookBtn: document.getElementById('exportPlaybookBtn'),
       playList: document.getElementById('playList'),
       settingsDialog: document.getElementById('settingsDialog'),
       ghOwner: document.getElementById('ghOwner'),
@@ -95,7 +90,8 @@
       reviewForwardBtn: document.getElementById('reviewForwardBtn'),
       playPauseBtn: document.getElementById('playPauseBtn'),
       restartBtn: document.getElementById('restartBtn'),
-      speedSlider: document.getElementById('speedSlider')
+      speedSlider: document.getElementById('speedSlider'),
+      fullscreenBtn: document.getElementById('fullscreenBtn')
     });
   }
 
@@ -126,12 +122,10 @@
     els.prevStepBtn.addEventListener('click', goPreviousStep);
     els.nextStepBtn.addEventListener('click', goNextOrCreateStep);
     els.addBlankStepBtn.addEventListener('click', addBlankStepAfterCurrent);
-    els.deleteStepBtn.addEventListener('click', deleteCurrentStep);
     els.savePlayBtn.addEventListener('click', () => {
       saveCurrentPlayToLibrary();
       showToast('Play saved');
     });
-    els.exportPlayBtn.addEventListener('click', () => exportJson(state.currentPlay, slugify(state.currentPlay.name) + '.json'));
 
     els.newPlayBtn.addEventListener('click', () => {
       checkpoint();
@@ -143,10 +137,12 @@
       renderAll();
     });
 
-    els.importPlayBtn.addEventListener('click', () => els.importFile.click());
-    els.importFile.addEventListener('change', importJsonFile);
+    document.querySelectorAll('[data-court-type]').forEach((button) => {
+      button.addEventListener('click', () => setCourtType(button.dataset.courtType));
+    });
     els.saveGitHubBtn.addEventListener('click', savePlaybookToGitHub);
     els.loadGitHubBtn.addEventListener('click', loadPlaybookFromGitHub);
+    els.exportPlaybookBtn.addEventListener('click', exportPlaybookJson);
 
     els.saveSettingsBtn.addEventListener('click', saveGitHubSettingsFromForm);
     els.clearGitHubBtn.addEventListener('click', clearGitHubSettings);
@@ -155,6 +151,7 @@
     els.reviewForwardBtn.addEventListener('click', () => jumpReviewStep(state.review.index + 1));
     els.playPauseBtn.addEventListener('click', togglePlayback);
     els.restartBtn.addEventListener('click', restartPlayback);
+    els.fullscreenBtn.addEventListener('click', toggleReviewFullscreen);
     els.speedSlider.addEventListener('input', () => {
       state.review.speed = Number(els.speedSlider.value);
     });
@@ -192,6 +189,7 @@
       name: 'New Play',
       description: '',
       tags: [],
+      courtType: null,
       createdAt: now,
       updatedAt: now,
       steps: [createStep()]
@@ -211,6 +209,7 @@
     try {
       state.plays = JSON.parse(localStorage.getItem(STORAGE.plays) || '[]');
       if (!Array.isArray(state.plays)) state.plays = [];
+      state.plays.forEach(normalizePlay);
     } catch {
       state.plays = [];
     }
@@ -228,6 +227,7 @@
     const currentId = localStorage.getItem(STORAGE.current);
     const saved = state.plays.find((play) => play.id === currentId) || state.plays[0];
     state.currentPlay = saved ? clone(saved) : createNewPlay();
+    normalizePlay(state.currentPlay);
     saveCurrentPlayId();
   }
 
@@ -244,6 +244,7 @@
 
   function normalizePlay(play) {
     play.schemaVersion = 1;
+    if (!Object.prototype.hasOwnProperty.call(play, 'courtType')) play.courtType = 'full';
     if (!Array.isArray(play.steps) || play.steps.length === 0) play.steps = [createStep()];
     play.steps.forEach((step) => {
       if (!step.id) step.id = uid('step');
@@ -275,6 +276,14 @@
     }
   }
 
+  function setCourtType(type) {
+    if (!['half', 'full'].includes(type)) return;
+    checkpoint();
+    state.currentPlay.courtType = type;
+    state.currentPlay.updatedAt = new Date().toISOString();
+    renderAll();
+  }
+
   function currentStep() {
     return state.currentPlay.steps[state.currentStepIndex];
   }
@@ -295,6 +304,7 @@
   }
 
   function onCourtPointerDown(event) {
+    if (!state.currentPlay.courtType) return;
     const pointer = getPointerPosition(els.courtSvg, event);
     const target = event.target.closest('[data-entity-kind], [data-action-id], [data-handle-action-id]');
     els.courtSvg.setPointerCapture(event.pointerId);
@@ -470,7 +480,7 @@
 
   function beginDraftAction(type, actorId, pointer) {
     const step = currentStep();
-    const actorPos = getActorPosition(step, actorId);
+    const actorPos = getDraftActionStart(step, actorId, type);
     if (!actorPos) return;
     if (type === 'dribble') {
       const player = findPlayer(step, actorId);
@@ -756,88 +766,23 @@
     els.playName.value = state.currentPlay.name || 'Untitled Play';
     els.stepChip.textContent = `Step ${state.currentStepIndex + 1} of ${state.currentPlay.steps.length}`;
     els.prevStepBtn.disabled = state.currentStepIndex === 0;
-    els.deleteStepBtn.disabled = state.currentPlay.steps.length === 1;
-    els.nextStepBtn.textContent = state.currentStepIndex === state.currentPlay.steps.length - 1 ? 'Next Step' : 'Next Step ›';
+    els.nextStepBtn.textContent = state.currentStepIndex === state.currentPlay.steps.length - 1 ? 'Next Step' : 'Next Step â€º';
     els.undoBtn.disabled = state.undoStack.length === 0;
     els.redoBtn.disabled = state.redoStack.length === 0;
+    els.courtChooser.classList.toggle('hidden', Boolean(state.currentPlay.courtType));
     renderCourt(els.courtSvg, currentStep(), {
+      courtType: state.currentPlay.courtType,
       selected: state.selected,
       draftAction: state.draftAction,
       interactive: true,
       showHandles: true
     });
-    if (!skipPanel) renderSelectionPanel();
-  }
-
-  function renderSelectionPanel() {
-    const panel = els.selectionPanel;
-    if (!state.selected) {
-      panel.classList.add('hidden');
-      panel.innerHTML = '';
-      return;
-    }
-
-    let title = '';
-    let sub = '';
-    const step = currentStep();
-
-    if (state.selected.kind === 'player') {
-      const player = findPlayer(step, state.selected.id);
-      if (!player) return;
-      title = `${player.side === 'offense' ? 'Blue offense' : 'Red defense'} ${player.number}`;
-      sub = 'Drag to edit the start of this step. Adjacent steps stay linked.';
-    }
-
-    if (state.selected.kind === 'ball') {
-      const ball = step.entities.ball;
-      if (!ball) return;
-      const owner = ball.ownerId ? findPlayer(step, ball.ownerId) : null;
-      title = 'Basketball';
-      sub = owner ? `Attached to ${owner.side === 'offense' ? 'blue' : 'red'} ${owner.number}` : 'Free ball position';
-    }
-
-    if (state.selected.kind === 'action') {
-      const action = findAction(step, state.selected.id);
-      if (!action) return;
-      title = ACTION_LABELS[action.type];
-      sub = 'Drag the white endpoint handle to edit the action.';
-    }
-
-    panel.innerHTML = `
-      <div>
-        <div class="selection-title">${escapeHtml(title)}</div>
-        <div class="selection-sub">${escapeHtml(sub)}</div>
-      </div>
-      <div class="selection-actions">
-        ${state.selected.kind === 'player' ? '<button class="pill-button secondary" data-panel-action="give-ball">Give Ball</button>' : ''}
-        ${state.selected.kind === 'ball' ? '<button class="pill-button secondary" data-panel-action="detach-ball">Detach</button>' : ''}
-        <button class="pill-button danger" data-panel-action="delete">Delete</button>
-      </div>`;
-
-    panel.querySelectorAll('[data-panel-action]').forEach((button) => {
-      button.addEventListener('click', () => {
-        const action = button.dataset.panelAction;
-        if (action === 'delete') deleteSelected();
-        if (action === 'give-ball' && state.selected?.kind === 'player') {
-          checkpoint();
-          attachBallToPlayer(state.selected.id);
-          renderCreate();
-        }
-        if (action === 'detach-ball' && currentStep().entities.ball) {
-          checkpoint();
-          currentStep().entities.ball.ownerId = null;
-          recomputeFollowingStepsFrom(state.currentStepIndex);
-          renderCreate();
-        }
-      });
-    });
-    panel.classList.remove('hidden');
   }
 
   function renderCourt(svg, step, options = {}) {
     const selected = options.selected || null;
     svg.innerHTML = '';
-    drawCourtBase(svg);
+    drawCourtBase(svg, options.courtType);
 
     const actionLayer = el('g', { class: 'actions-layer' });
     step.actions.forEach((action) => drawAction(actionLayer, action, selected?.kind === 'action' && selected.id === action.id, options.interactive));
@@ -855,7 +800,7 @@
     svg.appendChild(entityLayer);
   }
 
-  function drawCourtBase(svg) {
+  function drawCourtBase(svg, courtType = 'full') {
     const defs = el('defs');
     defs.appendChild(marker('arrowMove', '#22c55e'));
     defs.appendChild(marker('arrowPass', '#f8c14f'));
@@ -863,37 +808,23 @@
     defs.appendChild(filterSoftShadow());
     svg.appendChild(defs);
 
-    svg.appendChild(el('rect', { x: 0, y: 0, width: 600, height: 900, rx: 28, class: 'court-bg' }));
-    svg.appendChild(el('rect', { x: 18, y: 18, width: 564, height: 864, rx: 18, class: 'court-line' }));
-    svg.appendChild(el('line', { x1: 18, y1: 450, x2: 582, y2: 450, class: 'court-line thin' }));
-    svg.appendChild(el('circle', { cx: 300, cy: 450, r: 72, class: 'court-line thin' }));
-    svg.appendChild(el('circle', { cx: 300, cy: 450, r: 8, fill: 'rgba(49,71,96,0.55)' }));
+    if (!courtType) {
+      svg.appendChild(el('rect', { x: 0, y: 0, width: 600, height: 900, rx: 28, class: 'court-placeholder-bg' }));
+      return;
+    }
 
-    drawHalfCourt(svg, 'top');
-    drawHalfCourt(svg, 'bottom');
+    svg.appendChild(el('rect', { x: 0, y: 0, width: 600, height: 900, rx: 28, class: 'court-placeholder-bg' }));
+    svg.appendChild(el('image', {
+      href: courtType === 'half' ? 'assets/half-court.png' : 'assets/full-court.png',
+      ...courtImageAttrs(courtType),
+      preserveAspectRatio: 'xMidYMid meet',
+      class: 'court-image'
+    }));
   }
 
-  function drawHalfCourt(svg, side) {
-    const top = side === 'top';
-    const hoopY = top ? 84 : 816;
-    const laneY = top ? 18 : 642;
-    const arcY = top ? 84 : 816;
-    const freeThrowY = top ? 210 : 690;
-
-    svg.appendChild(el('line', { x1: 250, y1: hoopY, x2: 350, y2: hoopY, class: 'court-line' }));
-    svg.appendChild(el('circle', { cx: 300, cy: top ? 100 : 800, r: 14, class: 'court-line' }));
-    svg.appendChild(el('rect', { x: 210, y: laneY, width: 180, height: 240, class: 'court-line' }));
-    svg.appendChild(el('circle', { cx: 300, cy: freeThrowY, r: 60, class: 'court-line thin' }));
-
-    const arcPath = top
-      ? `M 90 18 A 250 250 0 0 0 510 18`
-      : `M 90 882 A 250 250 0 0 1 510 882`;
-    svg.appendChild(el('path', { d: arcPath, class: 'court-line thin' }));
-
-    const restricted = top
-      ? `M 252 ${arcY + 16} A 48 48 0 0 0 348 ${arcY + 16}`
-      : `M 252 ${arcY - 16} A 48 48 0 0 1 348 ${arcY - 16}`;
-    svg.appendChild(el('path', { d: restricted, class: 'court-line thin' }));
+  function courtImageAttrs(courtType) {
+    if (courtType === 'half') return { x: 0, y: 181, width: 600, height: 538 };
+    return { x: 0, y: 25, width: 600, height: 850 };
   }
 
   function marker(id, color) {
@@ -990,15 +921,14 @@
           <div class="play-card-top">
             <div>
               <h3>${escapeHtml(play.name || 'Untitled Play')}</h3>
-              <div class="play-card-meta">${stepCount} step${stepCount === 1 ? '' : 's'} • Updated ${escapeHtml(updated)}</div>
+              <div class="play-card-meta">${stepCount} step${stepCount === 1 ? '' : 's'} â€¢ Updated ${escapeHtml(updated)}</div>
             </div>
             <div class="step-chip">${stepCount}</div>
           </div>
           <div class="play-card-actions">
-            <button class="pill-button primary" data-library-action="open">Open</button>
+            <button class="pill-button primary" data-library-action="open">Edit</button>
             <button class="pill-button secondary" data-library-action="review">Review</button>
             <button class="pill-button secondary" data-library-action="duplicate">Duplicate</button>
-            <button class="pill-button secondary" data-library-action="export">Export</button>
             <button class="pill-button danger" data-library-action="delete">Delete</button>
           </div>
         </article>`;
@@ -1039,7 +969,6 @@
       persistLocalPlays();
       renderLibrary();
     }
-    if (action === 'export') exportJson(play, slugify(play.name) + '.json');
     if (action === 'delete') {
       if (!confirm(`Delete "${play.name || 'Untitled Play'}" from this device?`)) return;
       state.plays = state.plays.filter((item) => item.id !== playId);
@@ -1056,26 +985,44 @@
     if (!state.currentPlay) return;
     const maxIndex = Math.max(0, state.currentPlay.steps.length - 1);
     state.review.index = Math.max(0, Math.min(state.review.index, maxIndex));
-    els.reviewTitle.textContent = state.currentPlay.name || 'Untitled Play';
-    els.reviewStepChip.textContent = `Step ${state.review.index + 1} of ${state.currentPlay.steps.length}`;
-    els.playPauseBtn.textContent = state.review.playing ? 'Ⅱ' : '▶';
+    els.playPauseBtn.textContent = state.review.playing ? 'â…¡' : 'â–¶';
     const step = state.currentPlay.steps[state.review.index];
     const frame = frameStep(step, state.review.progress);
-    renderCourt(els.reviewSvg, frame, { interactive: false, showHandles: false });
+    renderCourt(els.reviewSvg, frame, {
+      courtType: state.currentPlay.courtType || 'full',
+      interactive: false,
+      showHandles: false
+    });
   }
 
   function frameStep(step, t) {
     const frame = clone(step);
     const entities = clone(step.entities);
+    const playerMovement = new Map();
     step.actions.forEach((action) => {
-      if (['move', 'screen'].includes(action.type)) {
-        const player = entities.players.find((item) => item.id === action.actorId);
-        if (player) {
-          player.x = lerp(action.from.x, action.to.x, easeInOut(t));
-          player.y = lerp(action.from.y, action.to.y, easeInOut(t));
-        }
+      if (['move', 'dribble', 'screen'].includes(action.type)) {
+        const items = playerMovement.get(action.actorId) || [];
+        items.push(action);
+        playerMovement.set(action.actorId, items);
       }
+    });
+
+    playerMovement.forEach((actions, playerId) => {
+      const player = entities.players.find((item) => item.id === playerId);
+      if (!player) return;
+      const scaled = Math.min(0.999, t) * actions.length;
+      const index = Math.min(actions.length - 1, Math.floor(scaled));
+      const action = actions[index];
+      const segmentT = easeInOut(scaled - index);
+      player.x = lerp(action.from.x, action.to.x, segmentT);
+      player.y = lerp(action.from.y, action.to.y, segmentT);
       if (action.type === 'dribble') {
+        entities.ball = { ...playerBallPosition(player), ownerId: player.id };
+      }
+    });
+
+    step.actions.forEach((action) => {
+      if (action.type === 'dribble' && !playerMovement.has(action.actorId)) {
         const player = entities.players.find((item) => item.id === action.actorId);
         if (player) {
           player.x = lerp(action.from.x, action.to.x, easeInOut(t));
@@ -1133,6 +1080,15 @@
     renderReview();
   }
 
+  function toggleReviewFullscreen() {
+    const target = document.querySelector('.review-card');
+    if (!document.fullscreenElement) {
+      target.requestFullscreen?.();
+    } else {
+      document.exitFullscreen?.();
+    }
+  }
+
   function checkpoint() {
     state.undoStack.push(clone({ play: state.currentPlay, stepIndex: state.currentStepIndex, selected: state.selected }));
     if (state.undoStack.length > 75) state.undoStack.shift();
@@ -1163,6 +1119,16 @@
     if (actorId === 'ball') return step.entities.ball ? resolvedBall(step.entities) : null;
     const player = findPlayer(step, actorId);
     return player ? { x: player.x, y: player.y } : null;
+  }
+
+  function getDraftActionStart(step, actorId, type) {
+    if (['move', 'dribble'].includes(type)) {
+      const previous = [...step.actions].reverse().find((action) =>
+        action.actorId === actorId && ['move', 'dribble'].includes(action.type)
+      );
+      if (previous) return { ...previous.to };
+    }
+    return getActorPosition(step, actorId);
   }
 
   function findPlayer(step, id) {
@@ -1245,6 +1211,16 @@
     link.click();
     link.remove();
     URL.revokeObjectURL(url);
+  }
+
+  function exportPlaybookJson() {
+    saveCurrentPlayToLibrary();
+    exportJson({
+      schemaVersion: 1,
+      exportedAt: new Date().toISOString(),
+      app: 'Playbook Live',
+      plays: state.plays
+    }, 'playbook-live.json');
   }
 
   async function importJsonFile(event) {

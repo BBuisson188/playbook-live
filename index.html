@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -24,14 +24,14 @@
           </div>
         </div>
         <div class="header-actions">
-          <button class="icon-button" id="undoBtn" title="Undo" aria-label="Undo">↶</button>
-          <button class="icon-button" id="redoBtn" title="Redo" aria-label="Redo">↷</button>
-          <button class="icon-button" id="settingsBtn" title="Settings" aria-label="Settings">⚙</button>
+          <button class="icon-button" id="undoBtn" title="Undo" aria-label="Undo">â†¶</button>
+          <button class="icon-button" id="redoBtn" title="Redo" aria-label="Redo">â†·</button>
+          <button class="icon-button" id="settingsBtn" title="Settings" aria-label="Settings">âš™</button>
         </div>
       </header>
 
       <main class="screen-stack">
-        <section id="createScreen" class="screen active" aria-label="Create play">
+        <section id="createScreen" class="screen active" aria-label="Editor">
           <div class="workspace-card">
             <div class="workspace-topbar">
               <div class="play-title-wrap">
@@ -43,26 +43,36 @@
 
             <div class="court-wrap">
               <svg id="courtSvg" class="court-svg" viewBox="0 0 600 900" role="img" aria-label="Basketball court editor"></svg>
-              <div id="selectionPanel" class="selection-panel hidden"></div>
+              <div id="courtChooser" class="court-chooser hidden" aria-label="Choose court type">
+                <div class="court-choice-title">Choose court</div>
+                <div class="court-choice-actions">
+                  <button class="court-choice-button" data-court-type="half" type="button">
+                    <span>Half</span>
+                    <img src="assets/half-court.png" alt="" />
+                  </button>
+                  <button class="court-choice-button" data-court-type="full" type="button">
+                    <span>Full</span>
+                    <img src="assets/full-court.png" alt="" />
+                  </button>
+                </div>
+              </div>
               <div id="toast" class="toast hidden"></div>
             </div>
 
             <div class="editor-footer">
               <div class="step-controls" aria-label="Step controls">
-                <button id="prevStepBtn" class="pill-button secondary">‹ Step</button>
+                <button id="prevStepBtn" class="pill-button secondary">â€¹ Step</button>
                 <button id="nextStepBtn" class="pill-button primary">Next Step</button>
                 <button id="addBlankStepBtn" class="pill-button secondary">Blank</button>
-                <button id="deleteStepBtn" class="pill-button danger">Delete</button>
               </div>
               <div class="quick-actions">
                 <button id="savePlayBtn" class="pill-button success">Save</button>
-                <button id="exportPlayBtn" class="pill-button secondary">Export</button>
               </div>
             </div>
           </div>
 
           <aside class="tool-dock" aria-label="Drawing tools">
-            <button class="tool-button active" data-tool="select"><span>↖</span><b>Select</b></button>
+            <button class="tool-button active" data-tool="select"><span>â†–</span><b>Select</b></button>
             <button class="tool-button" data-tool="offense"><span class="mini-player offense">1</span><b>Offense</b></button>
             <button class="tool-button" data-tool="defense"><span class="mini-player defense">1</span><b>Defense</b></button>
             <button class="tool-button" data-tool="ball"><span class="mini-ball"></span><b>Ball</b></button>
@@ -70,7 +80,7 @@
             <button class="tool-button" data-tool="pass"><span class="line-sample pass"></span><b>Pass</b></button>
             <button class="tool-button" data-tool="dribble"><span class="line-sample dribble"></span><b>Dribble</b></button>
             <button class="tool-button" data-tool="screen"><span class="line-sample screen"></span><b>Screen</b></button>
-            <button class="tool-button" data-tool="erase"><span>⌫</span><b>Erase</b></button>
+            <button class="tool-button" data-tool="erase"><span>âŒ«</span><b>Erase</b></button>
           </aside>
         </section>
 
@@ -84,10 +94,9 @@
               <button id="newPlayBtn" class="pill-button primary">New Play</button>
             </div>
             <div class="library-actions card-panel">
-              <button id="importPlayBtn" class="pill-button secondary">Import JSON</button>
               <button id="saveGitHubBtn" class="pill-button success">Save to GitHub</button>
               <button id="loadGitHubBtn" class="pill-button secondary">Load from GitHub</button>
-              <input id="importFile" type="file" accept="application/json,.json" hidden />
+              <button id="exportPlaybookBtn" class="pill-button secondary">Export Playbook</button>
             </div>
             <div id="playList" class="play-list"></div>
           </div>
@@ -95,20 +104,14 @@
 
         <section id="reviewScreen" class="screen" aria-label="Review play">
           <div class="review-card">
-            <div class="review-topbar">
-              <div>
-                <div class="eyebrow">Animated review</div>
-                <h2 id="reviewTitle">Playbook Live</h2>
-              </div>
-              <div class="step-chip" id="reviewStepChip">Step 1</div>
-            </div>
             <div class="court-wrap review-court-wrap">
               <svg id="reviewSvg" class="court-svg" viewBox="0 0 600 900" role="img" aria-label="Animated play review"></svg>
+              <button id="fullscreenBtn" class="fullscreen-button" type="button" title="Full screen" aria-label="Full screen">â›¶</button>
             </div>
             <div class="review-controls">
-              <button id="reviewBackBtn" class="icon-button large">‹</button>
-              <button id="playPauseBtn" class="play-button">▶</button>
-              <button id="reviewForwardBtn" class="icon-button large">›</button>
+              <button id="reviewBackBtn" class="icon-button large">â€¹</button>
+              <button id="playPauseBtn" class="play-button">â–¶</button>
+              <button id="reviewForwardBtn" class="icon-button large">â€º</button>
               <button id="restartBtn" class="pill-button secondary">Restart</button>
               <label class="speed-control">Speed
                 <input id="speedSlider" type="range" min="0.5" max="2" value="1" step="0.25" />
@@ -119,9 +122,9 @@
       </main>
 
       <nav class="bottom-nav" aria-label="Main navigation">
-        <button class="nav-button active" data-screen="create"><span>✎</span>Create</button>
-        <button class="nav-button" data-screen="playbook"><span>▦</span>Playbook</button>
-        <button class="nav-button" data-screen="review"><span>▶</span>Review</button>
+        <button class="nav-button active" data-screen="create"><span>âœŽ</span>Editor</button>
+        <button class="nav-button" data-screen="playbook"><span>â–¦</span>Playbook</button>
+        <button class="nav-button" data-screen="review"><span>â–¶</span>Review</button>
       </nav>
     </div>
 
@@ -132,7 +135,7 @@
             <div class="eyebrow">Manual cloud sync</div>
             <h2>GitHub Settings</h2>
           </div>
-          <button class="icon-button" value="cancel">×</button>
+          <button class="icon-button" value="cancel">Ã—</button>
         </div>
         <p class="muted">For personal use, create a fine-grained GitHub token with Contents read/write access to this repository. The token is stored only in this browser.</p>
         <div class="settings-grid">

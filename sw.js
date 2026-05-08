@@ -1,4 +1,4 @@
-const CACHE_NAME = 'playbook-live-v1';
+const CACHE_NAME = 'playbook-live-v2';
 const ASSETS = [
   './',
   './index.html',
@@ -8,7 +8,9 @@ const ASSETS = [
   './assets/icon.svg',
   './assets/icon-192.png',
   './assets/icon-512.png',
-  './assets/apple-touch-icon.png'
+  './assets/apple-touch-icon.png',
+  './assets/full-court.png',
+  './assets/half-court.png'
 ];
 
 self.addEventListener('install', (event) => {
