@@ -2,7 +2,12 @@
   'use strict';
 
   const SVG_NS = 'http://www.w3.org/2000/svg';
-  const COURT = { width: 600, height: 900, playerRadius: 24, ballRadius: 13 };
+  const COURT_CONFIGS = {
+    full: { width: 565, height: 800, image: 'assets/full-court.png' },
+    half: { width: 659, height: 591, image: 'assets/half-court.png' },
+    placeholder: { width: 600, height: 900, image: null }
+  };
+  const MARKERS = { playerRadius: 24, ballRadius: 13 };
   const STORAGE = {
     plays: 'playbook-live:plays:v1',
     current: 'playbook-live:current-play-id:v1',
@@ -303,9 +308,10 @@
   }
 
   function clampPoint(point) {
+    const court = getCourtConfig(state.currentPlay.courtType);
     return {
-      x: Math.max(26, Math.min(COURT.width - 26, point.x)),
-      y: Math.max(26, Math.min(COURT.height - 26, point.y))
+      x: Math.max(26, Math.min(court.width - 26, point.x)),
+      y: Math.max(26, Math.min(court.height - 26, point.y))
     };
   }
 
@@ -735,6 +741,9 @@
         actorPositions.set(action.actorId, { x: action.to.x, y: action.to.y });
       }
     });
+
+    window.addEventListener('resize', renderAll);
+    window.addEventListener('orientationchange', renderAll);
   }
 
   function syncActionStartsForEntity(step, entityId) {
@@ -807,7 +816,11 @@
 
   function renderCourt(svg, step, options = {}) {
     const selected = options.selected || null;
+    const court = getCourtConfig(options.courtType);
     svg.innerHTML = '';
+    svg.setAttribute('viewBox', `0 0 ${court.width} ${court.height}`);
+    svg.style.setProperty('--court-aspect', `${court.width} / ${court.height}`);
+    fitCourtSvg(svg, court);
     drawCourtBase(svg, options.courtType);
 
     const actionLayer = el('g', { class: 'actions-layer' });
@@ -827,6 +840,7 @@
   }
 
   function drawCourtBase(svg, courtType = 'full') {
+    const court = getCourtConfig(courtType);
     const defs = el('defs');
     defs.appendChild(marker('arrowMove', '#22c55e'));
     defs.appendChild(marker('arrowPass', '#f8c14f'));
@@ -834,20 +848,41 @@
     svg.appendChild(defs);
 
     if (!courtType) {
-      svg.appendChild(el('rect', { x: 0, y: 0, width: 600, height: 900, rx: 28, class: 'court-placeholder-bg' }));
+      svg.appendChild(el('rect', { x: 0, y: 0, width: court.width, height: court.height, rx: 28, class: 'court-placeholder-bg' }));
       return;
     }
 
-    svg.appendChild(el('rect', { x: 0, y: 0, width: 600, height: 900, rx: 28, class: 'court-placeholder-bg' }));
+    svg.appendChild(el('rect', { x: 0, y: 0, width: court.width, height: court.height, rx: 28, class: 'court-placeholder-bg' }));
     svg.appendChild(el('image', {
-      href: courtType === 'half' ? 'assets/half-court.png' : 'assets/full-court.png',
+      href: court.image,
       x: 0,
       y: 0,
-      width: 600,
-      height: 900,
-      preserveAspectRatio: 'xMidYMid slice',
+      width: court.width,
+      height: court.height,
+      preserveAspectRatio: 'xMidYMid meet',
       class: 'court-image'
     }));
+  }
+
+  function getCourtConfig(courtType) {
+    return COURT_CONFIGS[courtType] || COURT_CONFIGS.placeholder;
+  }
+
+  function fitCourtSvg(svg, court) {
+    const viewport = svg.parentElement;
+    if (!viewport) return;
+    const availableWidth = viewport.clientWidth;
+    const availableHeight = viewport.clientHeight;
+    if (!availableWidth || !availableHeight) return;
+    const courtRatio = court.width / court.height;
+    const viewportRatio = availableWidth / availableHeight;
+    if (viewportRatio > courtRatio) {
+      svg.style.height = `${availableHeight}px`;
+      svg.style.width = `${availableHeight * courtRatio}px`;
+    } else {
+      svg.style.width = `${availableWidth}px`;
+      svg.style.height = `${availableWidth / courtRatio}px`;
+    }
   }
 
   function marker(id, color) {
@@ -918,7 +953,7 @@
     });
     group.appendChild(el('circle', {
       class: 'outer',
-      r: COURT.playerRadius,
+      r: MARKERS.playerRadius,
       cx: 0,
       cy: 0,
       fill: player.side === 'offense' ? '#1b7cff' : '#f0445a',
@@ -936,8 +971,8 @@
       'data-entity-kind': interactive ? 'ball' : null,
       'data-entity-id': interactive ? 'ball' : null
     });
-    group.appendChild(el('circle', { class: 'ball-main', r: COURT.ballRadius, fill: '#e97724', stroke: '#8b3614', 'stroke-width': 2 }));
-    group.appendChild(el('path', { d: `M ${-COURT.ballRadius} 0 H ${COURT.ballRadius} M 0 ${-COURT.ballRadius} V ${COURT.ballRadius}`, stroke: '#8b3614', 'stroke-width': 2, 'stroke-linecap': 'round' }));
+    group.appendChild(el('circle', { class: 'ball-main', r: MARKERS.ballRadius, fill: '#e97724', stroke: '#8b3614', 'stroke-width': 2 }));
+    group.appendChild(el('path', { d: `M ${-MARKERS.ballRadius} 0 H ${MARKERS.ballRadius} M 0 ${-MARKERS.ballRadius} V ${MARKERS.ballRadius}`, stroke: '#8b3614', 'stroke-width': 2, 'stroke-linecap': 'round' }));
     group.appendChild(el('path', { d: `M -7 -11 C -1 -4 -1 4 -7 11 M 7 -11 C 1 -4 1 4 7 11`, stroke: '#8b3614', 'stroke-width': 1.8, fill: 'none', 'stroke-linecap': 'round' }));
     parent.appendChild(group);
   }
@@ -1214,7 +1249,8 @@
   }
 
   function playerBallPosition(player) {
-    return { x: Math.min(COURT.width - 18, player.x + 22), y: Math.min(COURT.height - 18, player.y + 19) };
+    const court = getCourtConfig(state.currentPlay?.courtType || 'full');
+    return { x: Math.min(court.width - 18, player.x + 22), y: Math.min(court.height - 18, player.y + 19) };
   }
 
   function actionPathD(action) {
