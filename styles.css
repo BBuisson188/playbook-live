@@ -262,7 +262,8 @@ h2 { font-size: clamp(1.35rem, 6vw, 2.35rem); }
 
 .court-svg {
   width: min(100%, calc((100dvh - 230px) * 0.666));
-  height: 100%;
+  height: auto;
+  aspect-ratio: 2 / 3;
   max-height: 100%;
   min-height: 0;
   border-radius: 24px;
@@ -626,6 +627,20 @@ h2 { font-size: clamp(1.35rem, 6vw, 2.35rem); }
 .full-width { grid-column: 1 / -1; }
 .modal-actions { justify-content: flex-end; gap: 10px; }
 
+.sync-details {
+  max-height: 180px;
+  overflow: auto;
+  padding: 12px;
+  border-radius: 12px;
+  background: rgba(0,0,0,0.24);
+  border: 1px solid var(--line);
+  color: #dce9fa;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.sync-details.hidden { display: none; }
+
 /* SVG entity styling */
 .action-path { fill: none; stroke-linecap: round; stroke-linejoin: round; pointer-events: stroke; cursor: pointer; }
 .action-path.selected { filter: drop-shadow(0 0 8px rgba(255,255,255,0.55)); }
@@ -642,7 +657,9 @@ h2 { font-size: clamp(1.35rem, 6vw, 2.35rem); }
 .player-number { fill: white; font-weight: 950; font-size: 26px; dominant-baseline: middle; text-anchor: middle; pointer-events: none; }
 .ball-node { cursor: grab; filter: drop-shadow(0 5px 9px rgba(0,0,0,0.25)); }
 .ball-node.selected .ball-main { stroke: white; stroke-width: 5; }
-.edit-handle { fill: white; stroke: #07111f; stroke-width: 4; cursor: grab; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.25)); }
+.edit-handle,
+.curve-handle { fill: white; stroke: #07111f; stroke-width: 4; cursor: grab; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.25)); }
+.curve-handle { fill: #dbeafe; }
 
 @media (orientation: landscape) and (max-height: 600px) {
   .app-shell { grid-template-columns: minmax(0, 1fr) 88px; grid-template-rows: auto 1fr; }

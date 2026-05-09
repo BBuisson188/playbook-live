@@ -32,6 +32,7 @@
     selected: null,
     drag: null,
     draftAction: null,
+    lastHandleTap: null,
     undoStack: [],
     redoStack: [],
     review: {
@@ -91,7 +92,12 @@
       playPauseBtn: document.getElementById('playPauseBtn'),
       restartBtn: document.getElementById('restartBtn'),
       speedSlider: document.getElementById('speedSlider'),
-      fullscreenBtn: document.getElementById('fullscreenBtn')
+      fullscreenBtn: document.getElementById('fullscreenBtn'),
+      syncResultDialog: document.getElementById('syncResultDialog'),
+      syncResultKicker: document.getElementById('syncResultKicker'),
+      syncResultTitle: document.getElementById('syncResultTitle'),
+      syncResultMessage: document.getElementById('syncResultMessage'),
+      syncResultDetails: document.getElementById('syncResultDetails')
     });
   }
 
@@ -310,9 +316,18 @@
     els.courtSvg.setPointerCapture(event.pointerId);
 
     if (target?.dataset.handleActionId) {
+      const action = findAction(currentStep(), target.dataset.handleActionId);
+      const handleKind = target.dataset.handleKind || 'to';
+      const now = Date.now();
+      const isDoubleTap = state.lastHandleTap?.id === target.dataset.handleActionId && now - state.lastHandleTap.ts < 360;
+      state.lastHandleTap = { id: target.dataset.handleActionId, ts: now };
+      if (handleKind === 'to' && action && canContinueAction(action) && (event.detail >= 2 || isDoubleTap)) {
+        beginDraftAction(action.type, action.actorId, pointer, action.to);
+        return;
+      }
       checkpoint();
       state.selected = { kind: 'action', id: target.dataset.handleActionId };
-      state.drag = { mode: 'handle', actionId: target.dataset.handleActionId, handle: target.dataset.handleKind || 'to' };
+      state.drag = { mode: 'handle', actionId: target.dataset.handleActionId, handle: handleKind };
       renderCreate();
       return;
     }
@@ -411,7 +426,7 @@
         if (!player) return;
         player.x = pointer.x;
         player.y = pointer.y;
-        syncActionStartsForEntity(currentStep(), player.id);
+        refreshActionStarts(currentStep());
         if (currentStep().entities.ball?.ownerId === player.id) {
           currentStep().entities.ball.x = pointer.x + 22;
           currentStep().entities.ball.y = pointer.y + 19;
@@ -430,12 +445,18 @@
     if (state.drag.mode === 'handle') {
       const action = findAction(currentStep(), state.drag.actionId);
       if (!action) return;
-      action.to = pointer;
-      if (action.type === 'pass') {
+      if (state.drag.handle === 'curve') {
+        action.control = pointer;
+      } else {
+        action.to = pointer;
+        if (['move', 'screen', 'dribble'].includes(action.type)) action.control = null;
+      }
+      if (action.type === 'pass' && state.drag.handle !== 'curve') {
         const target = findNearestPlayer(currentStep(), pointer, 38);
         action.targetPlayerId = target?.id || null;
         if (target) action.to = playerBallPosition(target);
       }
+      refreshActionStarts(currentStep());
       recomputeFollowingStepsFrom(state.currentStepIndex);
       renderCreate(false);
     }
@@ -478,9 +499,9 @@
     renderCreate();
   }
 
-  function beginDraftAction(type, actorId, pointer) {
+  function beginDraftAction(type, actorId, pointer, forcedFrom = null) {
     const step = currentStep();
-    const actorPos = getDraftActionStart(step, actorId, type);
+    const actorPos = forcedFrom || getDraftActionStart(step, actorId, type);
     if (!actorPos) return;
     if (type === 'dribble') {
       const player = findPlayer(step, actorId);
@@ -526,6 +547,7 @@
       }
     }
     currentStep().actions.push(action);
+    refreshActionStarts(currentStep());
     state.selected = { kind: 'action', id: action.id };
     recomputeFollowingStepsFrom(state.currentStepIndex);
     state.currentPlay.updatedAt = new Date().toISOString();
@@ -701,12 +723,16 @@
   }
 
   function refreshActionStarts(step) {
+    const actorPositions = new Map(step.entities.players.map((player) => [player.id, { x: player.x, y: player.y }]));
     step.actions.forEach((action) => {
-      const pos = getActorPosition(step, action.actorId);
-      if (pos) action.from = pos;
+      const pos = action.actorId === 'ball' ? getActorPosition(step, action.actorId) : actorPositions.get(action.actorId);
+      if (pos) action.from = { x: pos.x, y: pos.y };
       if (action.type === 'pass' && action.targetPlayerId) {
         const target = findPlayer(step, action.targetPlayerId);
         if (target) action.to = playerBallPosition(target);
+      }
+      if (['move', 'dribble', 'screen'].includes(action.type) && action.actorId !== 'ball') {
+        actorPositions.set(action.actorId, { x: action.to.x, y: action.to.y });
       }
     });
   }
@@ -766,7 +792,7 @@
     els.playName.value = state.currentPlay.name || 'Untitled Play';
     els.stepChip.textContent = `Step ${state.currentStepIndex + 1} of ${state.currentPlay.steps.length}`;
     els.prevStepBtn.disabled = state.currentStepIndex === 0;
-    els.nextStepBtn.textContent = state.currentStepIndex === state.currentPlay.steps.length - 1 ? 'Next Step' : 'Next Step â€º';
+    els.nextStepBtn.textContent = state.currentStepIndex === state.currentPlay.steps.length - 1 ? 'Next Step' : 'Next Step \u203a';
     els.undoBtn.disabled = state.undoStack.length === 0;
     els.redoBtn.disabled = state.redoStack.length === 0;
     els.courtChooser.classList.toggle('hidden', Boolean(state.currentPlay.courtType));
@@ -805,7 +831,6 @@
     defs.appendChild(marker('arrowMove', '#22c55e'));
     defs.appendChild(marker('arrowPass', '#f8c14f'));
     defs.appendChild(marker('arrowDribble', '#60a5fa'));
-    defs.appendChild(filterSoftShadow());
     svg.appendChild(defs);
 
     if (!courtType) {
@@ -816,15 +841,13 @@
     svg.appendChild(el('rect', { x: 0, y: 0, width: 600, height: 900, rx: 28, class: 'court-placeholder-bg' }));
     svg.appendChild(el('image', {
       href: courtType === 'half' ? 'assets/half-court.png' : 'assets/full-court.png',
-      ...courtImageAttrs(courtType),
-      preserveAspectRatio: 'xMidYMid meet',
+      x: 0,
+      y: 0,
+      width: 600,
+      height: 900,
+      preserveAspectRatio: 'xMidYMid slice',
       class: 'court-image'
     }));
-  }
-
-  function courtImageAttrs(courtType) {
-    if (courtType === 'half') return { x: 0, y: 181, width: 600, height: 538 };
-    return { x: 0, y: 25, width: 600, height: 850 };
   }
 
   function marker(id, color) {
@@ -841,15 +864,10 @@
     return markerEl;
   }
 
-  function filterSoftShadow() {
-    const filter = el('filter', { id: 'softShadow', x: '-30%', y: '-30%', width: '160%', height: '160%' });
-    filter.appendChild(el('feDropShadow', { dx: 0, dy: 5, stdDeviation: 4, 'flood-opacity': 0.25 }));
-    return filter;
-  }
-
   function drawAction(parent, action, isSelected, interactive) {
+    const actionPath = actionPathD(action);
     const path = el('path', {
-      d: action.type === 'dribble' ? wavyPath(action.from, action.to) : `M ${action.from.x} ${action.from.y} L ${action.to.x} ${action.to.y}`,
+      d: actionPath,
       class: `action-path ${ACTION_CLASS[action.type]} ${isSelected ? 'selected' : ''} ${action.ghost ? 'ghost-path' : ''}`,
       'data-action-id': interactive ? action.id : null,
       'marker-end': action.type === 'move' ? 'url(#arrowMove)' : action.type === 'pass' ? 'url(#arrowPass)' : action.type === 'dribble' ? 'url(#arrowDribble)' : null
@@ -857,7 +875,7 @@
     parent.appendChild(path);
 
     if (action.type === 'screen') {
-      const bar = screenBar(action.from, action.to);
+      const bar = screenBar(action.control || action.from, action.to);
       parent.appendChild(el('line', {
         x1: bar.x1,
         y1: bar.y1,
@@ -870,6 +888,17 @@
   }
 
   function drawActionHandles(svg, action) {
+    if (canCurveAction(action)) {
+      const mid = action.control || midpoint(action.from, action.to);
+      svg.appendChild(el('circle', {
+        cx: mid.x,
+        cy: mid.y,
+        r: 11,
+        class: 'curve-handle',
+        'data-handle-action-id': action.id,
+        'data-handle-kind': 'curve'
+      }));
+    }
     svg.appendChild(el('circle', {
       cx: action.to.x,
       cy: action.to.y,
@@ -887,7 +916,14 @@
       'data-entity-kind': interactive ? 'player' : null,
       'data-entity-id': interactive ? player.id : null
     });
-    group.appendChild(el('circle', { class: 'outer', r: COURT.playerRadius, cx: 0, cy: 0, filter: 'url(#softShadow)' }));
+    group.appendChild(el('circle', {
+      class: 'outer',
+      r: COURT.playerRadius,
+      cx: 0,
+      cy: 0,
+      fill: player.side === 'offense' ? '#1b7cff' : '#f0445a',
+      style: `fill: ${player.side === 'offense' ? '#1b7cff' : '#f0445a'}`
+    }));
     group.appendChild(el('circle', { r: 16, cx: 0, cy: 0, fill: 'rgba(255,255,255,0.14)' }));
     group.appendChild(el('text', { class: 'player-number', x: 0, y: 1 }, String(player.number)));
     parent.appendChild(group);
@@ -921,7 +957,7 @@
           <div class="play-card-top">
             <div>
               <h3>${escapeHtml(play.name || 'Untitled Play')}</h3>
-              <div class="play-card-meta">${stepCount} step${stepCount === 1 ? '' : 's'} â€¢ Updated ${escapeHtml(updated)}</div>
+              <div class="play-card-meta">${stepCount} step${stepCount === 1 ? '' : 's'} &bull; Updated ${escapeHtml(updated)}</div>
             </div>
             <div class="step-chip">${stepCount}</div>
           </div>
@@ -985,7 +1021,7 @@
     if (!state.currentPlay) return;
     const maxIndex = Math.max(0, state.currentPlay.steps.length - 1);
     state.review.index = Math.max(0, Math.min(state.review.index, maxIndex));
-    els.playPauseBtn.textContent = state.review.playing ? 'â…¡' : 'â–¶';
+    els.playPauseBtn.textContent = state.review.playing ? '\u23f8' : '\u25b6';
     const step = state.currentPlay.steps[state.review.index];
     const frame = frameStep(step, state.review.progress);
     renderCourt(els.reviewSvg, frame, {
@@ -1014,8 +1050,12 @@
       const index = Math.min(actions.length - 1, Math.floor(scaled));
       const action = actions[index];
       const segmentT = easeInOut(scaled - index);
-      player.x = lerp(action.from.x, action.to.x, segmentT);
-      player.y = lerp(action.from.y, action.to.y, segmentT);
+      const pos = action.control ? quadraticPoint(action.from, action.control, action.to, segmentT) : {
+        x: lerp(action.from.x, action.to.x, segmentT),
+        y: lerp(action.from.y, action.to.y, segmentT)
+      };
+      player.x = pos.x;
+      player.y = pos.y;
       if (action.type === 'dribble') {
         entities.ball = { ...playerBallPosition(player), ownerId: player.id };
       }
@@ -1045,6 +1085,14 @@
   }
 
   function togglePlayback() {
+    if (!state.review.playing && state.review.progress >= 1) {
+      if (state.review.index < state.currentPlay.steps.length - 1) {
+        state.review.index += 1;
+        state.review.progress = 0;
+      } else {
+        state.review.progress = 0;
+      }
+    }
     state.review.playing = !state.review.playing;
     state.review.lastTs = performance.now();
     if (state.review.playing) state.review.raf = requestAnimationFrame(playbackTick);
@@ -1058,9 +1106,8 @@
     const duration = 1650 / state.review.speed;
     state.review.progress += delta / duration;
     if (state.review.progress >= 1) {
-      state.review.progress = 0;
-      if (state.review.index < state.currentPlay.steps.length - 1) state.review.index += 1;
-      else state.review.playing = false;
+      state.review.progress = 1;
+      state.review.playing = false;
     }
     renderReview();
     if (state.review.playing) state.review.raf = requestAnimationFrame(playbackTick);
@@ -1122,13 +1169,17 @@
   }
 
   function getDraftActionStart(step, actorId, type) {
-    if (['move', 'dribble'].includes(type)) {
+    if (['move', 'dribble', 'screen'].includes(type)) {
       const previous = [...step.actions].reverse().find((action) =>
-        action.actorId === actorId && ['move', 'dribble'].includes(action.type)
+        action.actorId === actorId && ['move', 'dribble', 'screen'].includes(action.type)
       );
       if (previous) return { ...previous.to };
     }
     return getActorPosition(step, actorId);
+  }
+
+  function canContinueAction(action) {
+    return ['move', 'dribble', 'screen'].includes(action.type);
   }
 
   function findPlayer(step, id) {
@@ -1166,21 +1217,49 @@
     return { x: Math.min(COURT.width - 18, player.x + 22), y: Math.min(COURT.height - 18, player.y + 19) };
   }
 
-  function wavyPath(from, to) {
-    const dx = to.x - from.x;
-    const dy = to.y - from.y;
+  function actionPathD(action) {
+    if (action.type === 'dribble') return wavyPath(action.from, action.to, action.control);
+    if (action.control && canCurveAction(action)) {
+      return `M ${action.from.x} ${action.from.y} Q ${action.control.x} ${action.control.y} ${action.to.x} ${action.to.y}`;
+    }
+    return `M ${action.from.x} ${action.from.y} L ${action.to.x} ${action.to.y}`;
+  }
+
+  function canCurveAction(action) {
+    return ['move', 'dribble', 'screen'].includes(action.type);
+  }
+
+  function midpoint(a, b) {
+    return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+  }
+
+  function quadraticPoint(from, control, to, t) {
+    const one = 1 - t;
+    return {
+      x: one * one * from.x + 2 * one * t * control.x + t * t * to.x,
+      y: one * one * from.y + 2 * one * t * control.y + t * t * to.y
+    };
+  }
+
+  function wavyPath(from, to, control = null) {
+    const curveControl = control || midpoint(from, to);
+    const start = from;
+    const end = to;
+    const dx = end.x - start.x;
+    const dy = end.y - start.y;
     const len = Math.max(1, Math.hypot(dx, dy));
     const ux = dx / len;
     const uy = dy / len;
     const nx = -uy;
     const ny = ux;
     const segments = Math.max(8, Math.round(len / 22));
-    let d = `M ${from.x} ${from.y}`;
+    let d = `M ${start.x} ${start.y}`;
     for (let i = 1; i <= segments; i += 1) {
       const t = i / segments;
       const amp = Math.sin(t * Math.PI * segments) * 11;
-      const x = from.x + dx * t + nx * amp;
-      const y = from.y + dy * t + ny * amp;
+      const base = control ? quadraticPoint(start, curveControl, end, t) : { x: start.x + dx * t, y: start.y + dy * t };
+      const x = base.x + nx * amp;
+      const y = base.y + ny * amp;
       d += ` L ${x.toFixed(1)} ${y.toFixed(1)}`;
     }
     return d;
@@ -1332,11 +1411,11 @@
           sha
         })
       });
-      if (!response.ok) throw new Error(await response.text());
-      showToast('Saved to GitHub');
+      if (!response.ok) throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+      showSyncResult('success', 'Saved to GitHub', `Uploaded ${state.plays.length} play${state.plays.length === 1 ? '' : 's'} to ${settings.owner}/${settings.repo}:${settings.path}.`);
     } catch (error) {
       console.error(error);
-      showToast('GitHub save failed');
+      showSyncResult('error', 'GitHub save failed', 'The playbook was not saved to GitHub.', error.message || String(error));
     }
   }
 
@@ -1345,7 +1424,7 @@
     if (!settings) return;
     try {
       const response = await fetch(githubContentsUrl(settings, true), { headers: githubHeaders(settings) });
-      if (!response.ok) throw new Error(await response.text());
+      if (!response.ok) throw new Error(`HTTP ${response.status}: ${await response.text()}`);
       const json = await response.json();
       const content = base64ToUtf8(json.content || '');
       const data = JSON.parse(content);
@@ -1358,11 +1437,20 @@
       state.currentStepIndex = 0;
       saveCurrentPlayId();
       renderAll();
-      showToast('Loaded from GitHub');
+      showSyncResult('success', 'Loaded from GitHub', `Loaded ${state.plays.length} play${state.plays.length === 1 ? '' : 's'} from ${settings.owner}/${settings.repo}:${settings.path}.`);
     } catch (error) {
       console.error(error);
-      showToast('GitHub load failed');
+      showSyncResult('error', 'GitHub load failed', 'The playbook was not loaded from GitHub.', error.message || String(error));
     }
+  }
+
+  function showSyncResult(kind, title, message, details = '') {
+    els.syncResultKicker.textContent = kind === 'success' ? 'GitHub sync successful' : 'GitHub sync error';
+    els.syncResultTitle.textContent = title;
+    els.syncResultMessage.textContent = message;
+    els.syncResultDetails.textContent = details;
+    els.syncResultDetails.classList.toggle('hidden', !details);
+    els.syncResultDialog.showModal();
   }
 
   function githubContentsUrl(settings, includeRef = false) {

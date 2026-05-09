@@ -17,13 +17,28 @@ This version is a static vanilla HTML/CSS/JavaScript app. That is intentional so
 
 ## Publishing notes
 
-Use SSH, not HTTPS, for repository publishing. The preferred remote is:
+Publishing is fixed and working through local Git over SSH. Use SSH, not HTTPS, for repository publishing.
+
+- Repo: `git@github.com:BBuisson188/playbook-live.git`
+- Branch: `main` now tracks `origin/main`
+- Latest push succeeded: `9dd9701..35cb8a6 main -> main`
+- Do not use HTTPS credentials.
+- Do not use GitHub API publishing unless local Git is truly impossible.
+
+The preferred remote is:
 
 ```text
 git@github.com:BBuisson188/playbook-live.git
 ```
 
-The normal publish flow is:
+The Windows `.git` ACL recovery worked:
+
+```powershell
+icacls .git /reset /T
+icacls .git /inheritance:d /T
+```
+
+Future publishing should use the normal workflow:
 
 ```powershell
 git add .

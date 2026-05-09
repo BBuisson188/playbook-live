@@ -24,9 +24,9 @@
           </div>
         </div>
         <div class="header-actions">
-          <button class="icon-button" id="undoBtn" title="Undo" aria-label="Undo">â†¶</button>
-          <button class="icon-button" id="redoBtn" title="Redo" aria-label="Redo">â†·</button>
-          <button class="icon-button" id="settingsBtn" title="Settings" aria-label="Settings">âš™</button>
+          <button class="icon-button" id="undoBtn" title="Undo" aria-label="Undo">&#8630;</button>
+          <button class="icon-button" id="redoBtn" title="Redo" aria-label="Redo">&#8631;</button>
+          <button class="icon-button" id="settingsBtn" title="Settings" aria-label="Settings">&#9881;</button>
         </div>
       </header>
 
@@ -61,7 +61,7 @@
 
             <div class="editor-footer">
               <div class="step-controls" aria-label="Step controls">
-                <button id="prevStepBtn" class="pill-button secondary">â€¹ Step</button>
+                <button id="prevStepBtn" class="pill-button secondary">&#8249; Step</button>
                 <button id="nextStepBtn" class="pill-button primary">Next Step</button>
                 <button id="addBlankStepBtn" class="pill-button secondary">Blank</button>
               </div>
@@ -72,7 +72,7 @@
           </div>
 
           <aside class="tool-dock" aria-label="Drawing tools">
-            <button class="tool-button active" data-tool="select"><span>â†–</span><b>Select</b></button>
+            <button class="tool-button active" data-tool="select"><span>&#8598;</span><b>Select</b></button>
             <button class="tool-button" data-tool="offense"><span class="mini-player offense">1</span><b>Offense</b></button>
             <button class="tool-button" data-tool="defense"><span class="mini-player defense">1</span><b>Defense</b></button>
             <button class="tool-button" data-tool="ball"><span class="mini-ball"></span><b>Ball</b></button>
@@ -80,7 +80,7 @@
             <button class="tool-button" data-tool="pass"><span class="line-sample pass"></span><b>Pass</b></button>
             <button class="tool-button" data-tool="dribble"><span class="line-sample dribble"></span><b>Dribble</b></button>
             <button class="tool-button" data-tool="screen"><span class="line-sample screen"></span><b>Screen</b></button>
-            <button class="tool-button" data-tool="erase"><span>âŒ«</span><b>Erase</b></button>
+            <button class="tool-button" data-tool="erase"><span>&#9003;</span><b>Erase</b></button>
           </aside>
         </section>
 
@@ -106,12 +106,12 @@
           <div class="review-card">
             <div class="court-wrap review-court-wrap">
               <svg id="reviewSvg" class="court-svg" viewBox="0 0 600 900" role="img" aria-label="Animated play review"></svg>
-              <button id="fullscreenBtn" class="fullscreen-button" type="button" title="Full screen" aria-label="Full screen">â›¶</button>
+              <button id="fullscreenBtn" class="fullscreen-button" type="button" title="Full screen" aria-label="Full screen">&#9974;</button>
             </div>
             <div class="review-controls">
-              <button id="reviewBackBtn" class="icon-button large">â€¹</button>
-              <button id="playPauseBtn" class="play-button">â–¶</button>
-              <button id="reviewForwardBtn" class="icon-button large">â€º</button>
+              <button id="reviewBackBtn" class="icon-button large">&#8249;</button>
+              <button id="playPauseBtn" class="play-button">&#9654;</button>
+              <button id="reviewForwardBtn" class="icon-button large">&#8250;</button>
               <button id="restartBtn" class="pill-button secondary">Restart</button>
               <label class="speed-control">Speed
                 <input id="speedSlider" type="range" min="0.5" max="2" value="1" step="0.25" />
@@ -122,9 +122,9 @@
       </main>
 
       <nav class="bottom-nav" aria-label="Main navigation">
-        <button class="nav-button active" data-screen="create"><span>âœŽ</span>Editor</button>
-        <button class="nav-button" data-screen="playbook"><span>â–¦</span>Playbook</button>
-        <button class="nav-button" data-screen="review"><span>â–¶</span>Review</button>
+        <button class="nav-button active" data-screen="create"><span>&#9998;</span>Editor</button>
+        <button class="nav-button" data-screen="playbook"><span>&#9638;</span>Playbook</button>
+        <button class="nav-button" data-screen="review"><span>&#9654;</span>Review</button>
       </nav>
     </div>
 
@@ -135,7 +135,7 @@
             <div class="eyebrow">Manual cloud sync</div>
             <h2>GitHub Settings</h2>
           </div>
-          <button class="icon-button" value="cancel">Ã—</button>
+          <button class="icon-button" value="cancel">&#215;</button>
         </div>
         <p class="muted">For personal use, create a fine-grained GitHub token with Contents read/write access to this repository. The token is stored only in this browser.</p>
         <div class="settings-grid">
@@ -148,6 +148,23 @@
         <div class="modal-actions">
           <button id="clearGitHubBtn" type="button" class="pill-button danger">Clear</button>
           <button id="saveSettingsBtn" type="button" class="pill-button primary">Save Settings</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="syncResultDialog" class="modal-card result-modal">
+      <form method="dialog">
+        <div class="modal-header">
+          <div>
+            <div class="eyebrow" id="syncResultKicker">GitHub sync</div>
+            <h2 id="syncResultTitle">Sync result</h2>
+          </div>
+          <button class="icon-button" value="cancel">&#215;</button>
+        </div>
+        <p class="muted" id="syncResultMessage"></p>
+        <pre id="syncResultDetails" class="sync-details hidden"></pre>
+        <div class="modal-actions">
+          <button class="pill-button primary" value="default">OK</button>
         </div>
       </form>
     </dialog>
