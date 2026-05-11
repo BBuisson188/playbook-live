@@ -38,6 +38,7 @@
     drag: null,
     draftAction: null,
     lastHandleTap: null,
+    playReorder: null,
     undoStack: [],
     redoStack: [],
     review: {
@@ -744,6 +745,14 @@
 
     window.addEventListener('resize', renderAll);
     window.addEventListener('orientationchange', renderAll);
+    document.addEventListener('fullscreenchange', () => {
+      if (!document.fullscreenElement) {
+        document.getElementById('reviewScreen')?.classList.remove('ios-fullscreen');
+        document.body.classList.remove('review-fullscreen-active');
+        els.fullscreenBtn.setAttribute('aria-label', 'Full screen');
+        renderReview();
+      }
+    });
   }
 
   function syncActionStartsForEntity(step, entityId) {
@@ -987,14 +996,18 @@
     els.playList.innerHTML = state.plays.map((play) => {
       const stepCount = play.steps?.length || 0;
       const updated = play.updatedAt ? new Date(play.updatedAt).toLocaleString() : 'Not saved yet';
+      const isDragging = state.playReorder?.playId === play.id;
       return `
-        <article class="play-card" data-play-id="${play.id}">
+        <article class="play-card ${isDragging ? 'dragging' : ''}" data-play-id="${play.id}">
           <div class="play-card-top">
             <div>
               <h3>${escapeHtml(play.name || 'Untitled Play')}</h3>
               <div class="play-card-meta">${stepCount} step${stepCount === 1 ? '' : 's'} &bull; Updated ${escapeHtml(updated)}</div>
             </div>
-            <div class="step-chip">${stepCount}</div>
+            <div class="play-card-side">
+              <div class="step-chip">${stepCount}</div>
+              <button class="reorder-handle" data-reorder-play-id="${play.id}" type="button" title="Drag to reorder" aria-label="Drag to reorder play">&#8645;</button>
+            </div>
           </div>
           <div class="play-card-actions">
             <button class="pill-button primary" data-library-action="open">Edit</button>
@@ -1008,6 +1021,47 @@
     els.playList.querySelectorAll('[data-library-action]').forEach((button) => {
       button.addEventListener('click', () => handleLibraryAction(button.closest('[data-play-id]').dataset.playId, button.dataset.libraryAction));
     });
+    els.playList.querySelectorAll('[data-reorder-play-id]').forEach((button) => {
+      button.addEventListener('pointerdown', beginPlayReorder);
+    });
+  }
+
+  function beginPlayReorder(event) {
+    event.preventDefault();
+    const playId = event.currentTarget.dataset.reorderPlayId;
+    const startIndex = state.plays.findIndex((play) => play.id === playId);
+    if (startIndex < 0) return;
+    state.playReorder = { playId, pointerId: event.pointerId };
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    window.addEventListener('pointermove', updatePlayReorder);
+    window.addEventListener('pointerup', finishPlayReorder, { once: true });
+    window.addEventListener('pointercancel', finishPlayReorder, { once: true });
+    renderLibrary();
+  }
+
+  function updatePlayReorder(event) {
+    if (!state.playReorder) return;
+    const fromIndex = state.plays.findIndex((play) => play.id === state.playReorder.playId);
+    if (fromIndex < 0) return;
+    const cards = [...els.playList.querySelectorAll('[data-play-id]')];
+    const targetIndex = cards.findIndex((card) => {
+      const rect = card.getBoundingClientRect();
+      return event.clientY < rect.top + rect.height / 2;
+    });
+    let toIndex = targetIndex === -1 ? state.plays.length : targetIndex;
+    if (fromIndex < toIndex) toIndex -= 1;
+    if (toIndex === fromIndex) return;
+    const [play] = state.plays.splice(fromIndex, 1);
+    state.plays.splice(toIndex, 0, play);
+    renderLibrary();
+  }
+
+  function finishPlayReorder() {
+    if (!state.playReorder) return;
+    state.playReorder = null;
+    persistLocalPlays();
+    renderLibrary();
+    window.removeEventListener('pointermove', updatePlayReorder);
   }
 
   function handleLibraryAction(playId, action) {
@@ -1163,12 +1217,27 @@
   }
 
   function toggleReviewFullscreen() {
-    const target = document.querySelector('.review-card');
-    if (!document.fullscreenElement) {
-      target.requestFullscreen?.();
-    } else {
+    const target = document.getElementById('reviewScreen');
+    if (document.fullscreenElement) {
       document.exitFullscreen?.();
+      target.classList.remove('ios-fullscreen');
+      els.fullscreenBtn.setAttribute('aria-label', 'Full screen');
+      renderReview();
+      return;
     }
+
+    if (target.requestFullscreen) {
+      target.requestFullscreen().catch(() => enableReviewFullscreenFallback(target));
+    } else {
+      enableReviewFullscreenFallback(target);
+    }
+  }
+
+  function enableReviewFullscreenFallback(target) {
+    const active = target.classList.toggle('ios-fullscreen');
+    document.body.classList.toggle('review-fullscreen-active', active);
+    els.fullscreenBtn.setAttribute('aria-label', active ? 'Exit full screen' : 'Full screen');
+    renderReview();
   }
 
   function checkpoint() {
@@ -1330,12 +1399,7 @@
 
   function exportPlaybookJson() {
     saveCurrentPlayToLibrary();
-    exportJson({
-      schemaVersion: 1,
-      exportedAt: new Date().toISOString(),
-      app: 'Playbook Live',
-      plays: state.plays
-    }, 'playbook-live.json');
+    exportJson(createPlaybookSnapshot(), 'playbook-live.json');
   }
 
   async function importJsonFile(event) {
@@ -1367,6 +1431,42 @@
     state.currentPlay = clone(incoming[0]);
     state.currentStepIndex = 0;
     persistLocalPlays();
+    saveCurrentPlayId();
+    renderAll();
+  }
+
+  function createPlaybookSnapshot() {
+    return {
+      schemaVersion: 1,
+      exportedAt: new Date().toISOString(),
+      app: 'Playbook Live',
+      plays: clone(state.plays)
+    };
+  }
+
+  function parsePlaybookSnapshot(data) {
+    const plays = Array.isArray(data?.plays) ? clone(data.plays) : [];
+    if (!Array.isArray(data?.plays)) throw new Error('GitHub file does not contain a plays array');
+    plays.forEach(normalizePlay);
+    return plays;
+  }
+
+  function replacePlaybookSnapshot(data) {
+    state.plays = [];
+    persistLocalPlays();
+    localStorage.removeItem(STORAGE.current);
+
+    state.plays = parsePlaybookSnapshot(data);
+    persistLocalPlays();
+    state.currentPlay = state.plays[0] ? clone(state.plays[0]) : createNewPlay();
+    state.currentStepIndex = 0;
+    state.selected = null;
+    state.draftAction = null;
+    state.undoStack = [];
+    state.redoStack = [];
+    state.review.index = 0;
+    state.review.progress = 0;
+    state.review.playing = false;
     saveCurrentPlayId();
     renderAll();
   }
@@ -1420,13 +1520,9 @@
   async function savePlaybookToGitHub() {
     const settings = requireGitHubSettings();
     if (!settings) return;
+    if (!confirm('This will overwrite the GitHub playbook snapshot. Continue?')) return;
     saveCurrentPlayToLibrary();
-    const body = {
-      schemaVersion: 1,
-      exportedAt: new Date().toISOString(),
-      app: 'Playbook Live',
-      plays: state.plays
-    };
+    const body = createPlaybookSnapshot();
     const content = JSON.stringify(body, null, 2);
     const getUrl = githubContentsUrl(settings, true);
     const putUrl = githubContentsUrl(settings, false);
@@ -1458,21 +1554,14 @@
   async function loadPlaybookFromGitHub() {
     const settings = requireGitHubSettings();
     if (!settings) return;
+    if (!confirm('Loading from GitHub will completely replace your current local playbook. Continue?')) return;
     try {
       const response = await fetch(githubContentsUrl(settings, true), { headers: githubHeaders(settings) });
       if (!response.ok) throw new Error(`HTTP ${response.status}: ${await response.text()}`);
       const json = await response.json();
       const content = base64ToUtf8(json.content || '');
       const data = JSON.parse(content);
-      if (!Array.isArray(data.plays)) throw new Error('GitHub file does not contain plays array');
-      if (state.plays.length > 0 && !confirm('Replace the local playbook with the GitHub playbook?')) return;
-      state.plays = data.plays;
-      state.plays.forEach(normalizePlay);
-      persistLocalPlays();
-      state.currentPlay = state.plays[0] ? clone(state.plays[0]) : createNewPlay();
-      state.currentStepIndex = 0;
-      saveCurrentPlayId();
-      renderAll();
+      replacePlaybookSnapshot(data);
       showSyncResult('success', 'Loaded from GitHub', `Loaded ${state.plays.length} play${state.plays.length === 1 ? '' : 's'} from ${settings.owner}/${settings.repo}:${settings.path}.`);
     } catch (error) {
       console.error(error);
@@ -1481,7 +1570,7 @@
   }
 
   function showSyncResult(kind, title, message, details = '') {
-    els.syncResultKicker.textContent = kind === 'success' ? 'GitHub sync successful' : 'GitHub sync error';
+    els.syncResultKicker.textContent = kind === 'success' ? 'GitHub snapshot saved' : 'GitHub snapshot error';
     els.syncResultTitle.textContent = title;
     els.syncResultMessage.textContent = message;
     els.syncResultDetails.textContent = details;

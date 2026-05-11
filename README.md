@@ -63,9 +63,9 @@ HANDOFF.md
 README.md
 ```
 
-## GitHub sync setup
+## GitHub snapshot setup
 
-The app has manual GitHub sync buttons:
+The app has manual GitHub snapshot buttons:
 
 - Save to GitHub
 - Load from GitHub
@@ -79,6 +79,8 @@ Open the gear icon and enter:
 - A GitHub token
 
 For personal use, create a fine-grained GitHub token with repository Contents read/write access. The token is stored only in the browser's local storage.
+
+Save to GitHub overwrites the configured JSON file with the entire local playbook snapshot. Load from GitHub completely replaces the local playbook with that snapshot after confirmation.
 
 ## Main usage flow
 

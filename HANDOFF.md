@@ -68,7 +68,7 @@ git status
 ```text
 index.html        Main app shell and screens
 styles.css        Full visual design and responsive layout
-app.js            App state, editor, renderer, playback, storage, GitHub sync
+app.js            App state, editor, renderer, playback, storage, GitHub snapshot save/load
 manifest.json     PWA manifest
 sw.js             Basic service worker for offline caching
 assets/icon.svg   App icon source
@@ -287,9 +287,26 @@ or
 { plays: [...] }
 ```
 
-### GitHub sync
+### GitHub snapshot save/load
 
-Manual GitHub sync is implemented with GitHub's Contents API.
+Manual GitHub save/load is implemented with GitHub's Contents API. Treat GitHub as a single-user backup snapshot, not a sync engine.
+
+Save behavior:
+
+- Serialize the entire local playbook into one JSON object.
+- Overwrite the configured GitHub JSON file every time.
+- Use the GitHub Contents API SHA update flow when the file exists.
+- Create the file when it does not exist.
+- Do not merge, append, reconcile, or preserve remote data.
+
+Load behavior:
+
+- Confirm with the user before replacing local data.
+- Fetch the configured GitHub JSON file.
+- Clear the local playbook/current selection first.
+- Replace local storage and in-memory state with the GitHub snapshot.
+- Fully refresh the UI from the loaded snapshot.
+- Do not merge, append, reconcile, or preserve local plays.
 
 Settings are stored in local storage under:
 
@@ -366,20 +383,11 @@ Add fields and UI for:
 - Filter
 - Duplicate as template
 
-### 6. Better GitHub conflict handling
-
-Current save overwrites the GitHub file if it can fetch the latest sha. Improve this with:
-
-- Last-synced timestamp
-- Local dirty state
-- Merge by play id
-- Conflict warning when GitHub has newer content
-
-### 7. Better PWA install flow
+### 6. Better PWA install flow
 
 Add a small install/help screen explaining how to save to home screen on iPhone/iPad.
 
-### 8. Add tests
+### 7. Add tests
 
 Suggested tests:
 
@@ -409,7 +417,7 @@ Then improve the app in this priority order:
 2. Improve touch editing and path endpoint handles.
 3. Improve mobile layout and visual polish while keeping the Playbook Live premium sports-tech style.
 4. Add metadata/search/filter to the Playbook screen.
-5. Improve GitHub sync conflict handling.
+5. Keep GitHub save/load as simple snapshot replacement unless the user explicitly asks for sync logic.
 
 Keep the app easy to deploy on GitHub Pages.
 ```
