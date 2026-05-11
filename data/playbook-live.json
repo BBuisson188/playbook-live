@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "exportedAt": "2026-05-11T20:38:33.757Z",
+  "exportedAt": "2026-05-11T20:42:16.102Z",
   "app": "Playbook Live",
   "plays": [
     {
@@ -616,7 +616,7 @@
       "tags": [],
       "courtType": "half",
       "createdAt": "2026-05-09T15:57:30.247Z",
-      "updatedAt": "2026-05-09T15:59:09.081Z",
+      "updatedAt": "2026-05-11T20:42:16.100Z",
       "steps": [
         {
           "id": "step_ee5wdg7_2687",
@@ -875,8 +875,85 @@
                 "y": 221.62274169921875
               },
               "targetPlayerId": null
+            },
+            {
+              "id": "act_2web8lo_2t1h",
+              "type": "move",
+              "actorId": "o_fr5sk27_2h2a",
+              "from": {
+                "x": 294.54022216796875,
+                "y": 481.51239013671875
+              },
+              "to": {
+                "x": 161.2973175048828,
+                "y": 486.7893371582031
+              },
+              "targetPlayerId": null
+            },
+            {
+              "id": "act_fvjms70_3288",
+              "type": "move",
+              "actorId": "o_8o9tuvn_2c1k",
+              "from": {
+                "x": 473.9564208984375,
+                "y": 383.88885498046875
+              },
+              "to": {
+                "x": 590.0492553710938,
+                "y": 492.0662841796875
+              },
+              "targetPlayerId": null
             }
           ]
+        },
+        {
+          "id": "step_1yebzlk_2ptn",
+          "notes": "",
+          "entities": {
+            "players": [
+              {
+                "id": "o_n622yz8_2a13",
+                "side": "offense",
+                "number": 1,
+                "x": 414.59075927734375,
+                "y": 543.5165405273438
+              },
+              {
+                "id": "o_8o9tuvn_2c1k",
+                "side": "offense",
+                "number": 2,
+                "x": 590.0492553710938,
+                "y": 492.0662841796875
+              },
+              {
+                "id": "o_st3ztsr_2dso",
+                "side": "offense",
+                "number": 3,
+                "x": 382.9290771484375,
+                "y": 478.8739013671875
+              },
+              {
+                "id": "o_nrtxlj7_2fjt",
+                "side": "offense",
+                "number": 4,
+                "x": 452.8486328125,
+                "y": 221.62274169921875
+              },
+              {
+                "id": "o_fr5sk27_2h2a",
+                "side": "offense",
+                "number": 5,
+                "x": 161.2973175048828,
+                "y": 486.7893371582031
+              }
+            ],
+            "ball": {
+              "x": 436.59075927734375,
+              "y": 562.5165405273438,
+              "ownerId": "o_n622yz8_2a13"
+            }
+          },
+          "actions": []
         }
       ]
     },
