@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#07111f" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Playbook Live" />
+    <title>Playbook Live</title>
+    <link rel="manifest" href="manifest.json" />
+    <link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body data-app-mode="player">
+    <div id="app" class="app-shell player-shell">
+      <header class="app-header">
+        <div class="brand-block">
+          <div class="brand-mark" aria-hidden="true">PL</div>
+          <div>
+            <div class="eyebrow">Team playbook</div>
+            <h1>Playbook Live</h1>
+          </div>
+        </div>
+      </header>
+
+      <main class="screen-stack">
+        <section id="playbookScreen" class="screen active" aria-label="Playbook library">
+          <div class="library-layout player-library-layout">
+            <div class="library-header card-panel">
+              <div>
+                <div class="eyebrow">Latest published plays</div>
+                <h2>Playbook</h2>
+              </div>
+            </div>
+            <div id="playerStatus" class="player-status loading">
+              <span data-player-status-message>Updating playbook...</span>
+              <button id="retryPlayerLoadBtn" class="pill-button primary hidden" type="button">Retry</button>
+            </div>
+            <div id="playList" class="play-list"></div>
+          </div>
+        </section>
+
+        <section id="reviewScreen" class="screen" aria-label="Review play">
+          <div class="review-card">
+            <div class="court-wrap review-court-wrap">
+              <svg id="reviewSvg" class="court-svg" viewBox="0 0 565 800" role="img" aria-label="Animated play review"></svg>
+              <button id="fullscreenBtn" class="fullscreen-button" type="button" title="Full screen" aria-label="Full screen">&#9974;</button>
+            </div>
+            <div class="review-controls">
+              <button id="reviewBackBtn" class="icon-button large" aria-label="Previous step">&#8249;</button>
+              <button id="playPauseBtn" class="play-button" aria-label="Play or pause">&#9654;</button>
+              <button id="reviewForwardBtn" class="icon-button large" aria-label="Next step">&#8250;</button>
+              <button id="restartBtn" class="pill-button secondary">Restart</button>
+              <label class="speed-control">Speed
+                <input id="speedSlider" type="range" min="0.5" max="2" value="1" step="0.25" />
+              </label>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <nav class="bottom-nav player-nav" aria-label="Main navigation">
+        <button class="nav-button active" data-screen="playbook"><span>&#9638;</span>Playbook</button>
+        <button class="nav-button" data-screen="review"><span>&#9654;</span>Review</button>
+      </nav>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>

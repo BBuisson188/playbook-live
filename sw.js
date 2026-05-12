@@ -1,7 +1,9 @@
-const CACHE_NAME = 'playbook-live-v6';
+const CACHE_NAME = 'playbook-live-v7';
 const ASSETS = [
   './',
   './index.html',
+  './coach.html',
+  './player.html',
   './styles.css',
   './app.js',
   './manifest.json',

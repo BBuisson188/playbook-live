@@ -23,6 +23,7 @@
 }
 
 * { box-sizing: border-box; }
+.hidden { display: none !important; }
 
 html, body { height: 100%; }
 
@@ -36,6 +37,14 @@ body {
   overflow: hidden;
   -webkit-font-smoothing: antialiased;
   touch-action: manipulation;
+}
+
+body.coach-locked {
+  overflow: hidden;
+}
+
+body.coach-locked .app-shell {
+  display: none;
 }
 
 button, input {
@@ -510,6 +519,12 @@ h2 { font-size: clamp(1.35rem, 6vw, 2.35rem); }
 .card-panel { padding: 14px; }
 .library-header { justify-content: space-between; gap: 12px; }
 .library-actions { flex-wrap: wrap; }
+.player-library-layout {
+  grid-template-rows: auto auto minmax(0, 1fr);
+}
+.player-nav {
+  grid-template-columns: repeat(2, 1fr);
+}
 .play-list {
   min-height: 0;
   overflow-y: auto;
@@ -530,6 +545,10 @@ h2 { font-size: clamp(1.35rem, 6vw, 2.35rem); }
 .play-card.dragging {
   border-color: rgba(27,124,255,0.65);
   background: rgba(27,124,255,0.16);
+}
+.play-card.selected {
+  border-color: rgba(27,124,255,0.7);
+  background: rgba(27,124,255,0.14);
 }
 .play-card-top { display: flex; justify-content: space-between; gap: 10px; align-items: start; }
 .play-card-side {
@@ -696,6 +715,89 @@ body.review-fullscreen-active {
 
 .sync-details.hidden { display: none; }
 
+.coach-gate {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
+}
+
+.coach-gate-card {
+  width: min(100%, 440px);
+  display: grid;
+  gap: 14px;
+  padding: 22px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.14), rgba(255,255,255,0.07));
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(22px);
+}
+
+.coach-gate-card .brand-mark {
+  margin-bottom: 2px;
+}
+
+.coach-passcode-label {
+  color: var(--muted);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 850;
+}
+
+.coach-passcode-input {
+  width: 100%;
+  min-height: 48px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 0 14px;
+  background: rgba(255,255,255,0.08);
+  color: white;
+  outline: none;
+}
+
+.coach-passcode-input:focus {
+  border-color: rgba(27,124,255,0.72);
+  box-shadow: 0 0 0 4px rgba(27,124,255,0.14);
+}
+
+.coach-gate-message {
+  min-height: 20px;
+  margin: 0;
+  color: #ffd8df;
+  font-weight: 750;
+}
+
+.player-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 20px;
+  border: 1px solid var(--line);
+  color: #e8f1ff;
+  background: rgba(255,255,255,0.07);
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.player-status.loading {
+  border-color: rgba(27,124,255,0.35);
+  background: rgba(27,124,255,0.13);
+}
+
+.player-status.warning {
+  border-color: rgba(248,193,79,0.42);
+  background: rgba(248,193,79,0.13);
+}
+
+.player-status.error {
+  border-color: rgba(240,68,90,0.42);
+  background: rgba(240,68,90,0.13);
+}
+
 /* SVG entity styling */
 .action-path { fill: none; stroke-linecap: round; stroke-linejoin: round; pointer-events: stroke; cursor: pointer; }
 .action-path.selected { filter: drop-shadow(0 0 8px rgba(255,255,255,0.55)); }
@@ -720,6 +822,7 @@ body.review-fullscreen-active {
   .app-shell { grid-template-columns: minmax(0, 1fr) 88px; grid-template-rows: auto 1fr; }
   .app-header { grid-column: 1 / -1; }
   .bottom-nav { grid-column: 2; grid-row: 2; height: 100%; grid-template-columns: 1fr; grid-template-rows: repeat(3, 1fr); }
+  .player-nav { grid-template-rows: repeat(2, 1fr); }
   .screen-stack { grid-column: 1; grid-row: 2; }
   #createScreen { flex-direction: row; }
   .tool-dock { width: 82px; min-height: 0; grid-template-columns: 1fr; grid-auto-rows: 68px; overflow-y: auto; overflow-x: hidden; }

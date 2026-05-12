@@ -8,6 +8,12 @@
     placeholder: { width: 600, height: 900, image: null }
   };
   const MARKERS = { playerRadius: 24, ballRadius: 13 };
+  const APP_MODE = document.body?.dataset.appMode === 'player' ? 'player' : 'coach';
+  const COACH_PASSCODE = "coach";
+  const COACH_UNLOCK_KEY = 'playbook-live:coach-unlocked';
+  const PLAYER_JSON_URL = 'data/playbook-live.json';
+  const PLAYER_CACHE_KEY = 'playbook-live:player-json-cache';
+  const PLAYER_LINK = 'https://bbuisson188.github.io/playbook-live/player.html';
   const STORAGE = {
     plays: 'playbook-live:plays:v1',
     current: 'playbook-live:current-play-id:v1',
@@ -30,7 +36,7 @@
 
   const state = {
     tool: 'select',
-    screen: 'create',
+    screen: APP_MODE === 'player' ? 'playbook' : 'create',
     plays: [],
     currentPlay: null,
     currentStepIndex: 0,
@@ -56,12 +62,63 @@
   document.addEventListener('DOMContentLoaded', init);
 
   function init() {
+    if (APP_MODE === 'player') {
+      initPlayer();
+      return;
+    }
+    initCoachGate();
+  }
+
+  function initCoachGate() {
+    cacheElements();
+    if (localStorage.getItem(COACH_UNLOCK_KEY) === 'true') {
+      unlockCoachApp();
+      return;
+    }
+    document.body.classList.add('coach-locked');
+    els.coachGate?.classList.remove('hidden');
+    els.coachPasscode?.focus();
+    els.coachUnlockBtn?.addEventListener('click', handleCoachUnlock);
+    els.coachPasscode?.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        handleCoachUnlock();
+      }
+    });
+  }
+
+  function handleCoachUnlock() {
+    if (els.coachPasscode?.value === COACH_PASSCODE) {
+      localStorage.setItem(COACH_UNLOCK_KEY, 'true');
+      unlockCoachApp();
+      return;
+    }
+    if (els.coachGateMessage) els.coachGateMessage.textContent = 'That passcode did not unlock coach mode.';
+    els.coachPasscode?.select();
+  }
+
+  function unlockCoachApp() {
+    els.coachGate?.classList.add('hidden');
+    document.body.classList.remove('coach-locked');
+    initCoachApp();
+  }
+
+  function initCoachApp() {
     cacheElements();
     loadLocalPlays();
     loadOrCreateCurrentPlay();
     loadGitHubSettingsIntoForm();
     attachEvents();
+    attachViewportEvents();
     renderAll();
+    registerServiceWorker();
+  }
+
+  async function initPlayer() {
+    cacheElements();
+    attachPlayerEvents();
+    attachViewportEvents();
+    await loadPlayerPlaybook();
     registerServiceWorker();
   }
 
@@ -84,6 +141,8 @@
       saveGitHubBtn: document.getElementById('saveGitHubBtn'),
       loadGitHubBtn: document.getElementById('loadGitHubBtn'),
       exportPlaybookBtn: document.getElementById('exportPlaybookBtn'),
+      importPlaybookBtn: document.getElementById('importPlaybookBtn'),
+      importPlaybookInput: document.getElementById('importPlaybookInput'),
       playList: document.getElementById('playList'),
       settingsDialog: document.getElementById('settingsDialog'),
       ghOwner: document.getElementById('ghOwner'),
@@ -103,7 +162,15 @@
       syncResultKicker: document.getElementById('syncResultKicker'),
       syncResultTitle: document.getElementById('syncResultTitle'),
       syncResultMessage: document.getElementById('syncResultMessage'),
-      syncResultDetails: document.getElementById('syncResultDetails')
+      syncResultDetails: document.getElementById('syncResultDetails'),
+      coachGate: document.getElementById('coachGate'),
+      coachPasscode: document.getElementById('coachPasscode'),
+      coachUnlockBtn: document.getElementById('coachUnlockBtn'),
+      coachGateMessage: document.getElementById('coachGateMessage'),
+      lockCoachBtn: document.getElementById('lockCoachBtn'),
+      copyPlayerLinkBtn: document.getElementById('copyPlayerLinkBtn'),
+      playerStatus: document.getElementById('playerStatus'),
+      retryPlayerLoadBtn: document.getElementById('retryPlayerLoadBtn')
     });
   }
 
@@ -155,9 +222,13 @@
     els.saveGitHubBtn.addEventListener('click', savePlaybookToGitHub);
     els.loadGitHubBtn.addEventListener('click', loadPlaybookFromGitHub);
     els.exportPlaybookBtn.addEventListener('click', exportPlaybookJson);
+    els.importPlaybookBtn?.addEventListener('click', () => els.importPlaybookInput?.click());
+    els.importPlaybookInput?.addEventListener('change', importJsonFile);
+    els.copyPlayerLinkBtn?.addEventListener('click', copyPlayerLink);
 
     els.saveSettingsBtn.addEventListener('click', saveGitHubSettingsFromForm);
     els.clearGitHubBtn.addEventListener('click', clearGitHubSettings);
+    els.lockCoachBtn?.addEventListener('click', lockCoachMode);
 
     els.reviewBackBtn.addEventListener('click', () => jumpReviewStep(state.review.index - 1));
     els.reviewForwardBtn.addEventListener('click', () => jumpReviewStep(state.review.index + 1));
@@ -182,6 +253,35 @@
           event.preventDefault();
           deleteSelected();
         }
+      }
+    });
+  }
+
+  function attachPlayerEvents() {
+    document.querySelectorAll('.nav-button').forEach((button) => {
+      button.addEventListener('click', () => setScreen(button.dataset.screen));
+    });
+
+    els.reviewBackBtn?.addEventListener('click', () => jumpReviewStep(state.review.index - 1));
+    els.reviewForwardBtn?.addEventListener('click', () => jumpReviewStep(state.review.index + 1));
+    els.playPauseBtn?.addEventListener('click', togglePlayback);
+    els.restartBtn?.addEventListener('click', restartPlayback);
+    els.fullscreenBtn?.addEventListener('click', toggleReviewFullscreen);
+    els.speedSlider?.addEventListener('input', () => {
+      state.review.speed = Number(els.speedSlider.value);
+    });
+    els.retryPlayerLoadBtn?.addEventListener('click', loadPlayerPlaybook);
+  }
+
+  function attachViewportEvents() {
+    window.addEventListener('resize', renderAll);
+    window.addEventListener('orientationchange', renderAll);
+    document.addEventListener('fullscreenchange', () => {
+      if (!document.fullscreenElement) {
+        document.getElementById('reviewScreen')?.classList.remove('ios-fullscreen');
+        document.body.classList.remove('review-fullscreen-active');
+        els.fullscreenBtn?.setAttribute('aria-label', 'Full screen');
+        renderReview();
       }
     });
   }
@@ -277,13 +377,14 @@
   }
 
   function setScreen(screen) {
+    if (APP_MODE === 'player' && !['playbook', 'review'].includes(screen)) return;
     state.screen = screen;
     document.querySelectorAll('.nav-button').forEach((button) => button.classList.toggle('active', button.dataset.screen === screen));
     document.querySelectorAll('.screen').forEach((panel) => panel.classList.remove('active'));
-    document.getElementById(`${screen}Screen`).classList.add('active');
+    document.getElementById(`${screen}Screen`)?.classList.add('active');
     if (screen === 'playbook') renderLibrary();
     if (screen === 'review') {
-      state.review.index = Math.min(state.review.index, state.currentPlay.steps.length - 1);
+      if (state.currentPlay) state.review.index = Math.min(state.review.index, state.currentPlay.steps.length - 1);
       renderReview();
     }
   }
@@ -742,17 +843,6 @@
         actorPositions.set(action.actorId, { x: action.to.x, y: action.to.y });
       }
     });
-
-    window.addEventListener('resize', renderAll);
-    window.addEventListener('orientationchange', renderAll);
-    document.addEventListener('fullscreenchange', () => {
-      if (!document.fullscreenElement) {
-        document.getElementById('reviewScreen')?.classList.remove('ios-fullscreen');
-        document.body.classList.remove('review-fullscreen-active');
-        els.fullscreenBtn.setAttribute('aria-label', 'Full screen');
-        renderReview();
-      }
-    });
   }
 
   function syncActionStartsForEntity(step, entityId) {
@@ -801,12 +891,18 @@
   }
 
   function renderAll() {
+    if (APP_MODE === 'player') {
+      renderLibrary();
+      renderReview();
+      return;
+    }
     renderCreate();
     renderLibrary();
     renderReview();
   }
 
   function renderCreate(skipPanel = false) {
+    if (APP_MODE === 'player') return;
     els.playName.value = state.currentPlay.name || 'Untitled Play';
     els.stepChip.textContent = `Step ${state.currentStepIndex + 1} of ${state.currentPlay.steps.length}`;
     els.prevStepBtn.disabled = state.currentStepIndex === 0;
@@ -989,7 +1085,9 @@
   function renderLibrary() {
     if (!els.playList) return;
     if (state.plays.length === 0) {
-      els.playList.innerHTML = `<div class="empty-state"><strong>No saved plays yet</strong>Create a play, then tap Save. Your local playbook will appear here.</div>`;
+      els.playList.innerHTML = APP_MODE === 'player'
+        ? `<div class="empty-state"><strong>No published plays yet</strong>The player playbook loaded, but it does not contain any plays.</div>`
+        : `<div class="empty-state"><strong>No saved plays yet</strong>Create a play, then tap Save. Your local playbook will appear here.</div>`;
       return;
     }
 
@@ -997,8 +1095,16 @@
       const stepCount = play.steps?.length || 0;
       const updated = play.updatedAt ? new Date(play.updatedAt).toLocaleString() : 'Not saved yet';
       const isDragging = state.playReorder?.playId === play.id;
+      const isSelected = state.currentPlay?.id === play.id;
+      const playerActions = `
+            <button class="pill-button primary" data-library-action="review">Review</button>`;
+      const coachActions = `
+            <button class="pill-button primary" data-library-action="open">Edit</button>
+            <button class="pill-button secondary" data-library-action="review">Review</button>
+            <button class="pill-button secondary" data-library-action="duplicate">Duplicate</button>
+            <button class="pill-button danger" data-library-action="delete">Delete</button>`;
       return `
-        <article class="play-card ${isDragging ? 'dragging' : ''}" data-play-id="${play.id}">
+        <article class="play-card ${isDragging ? 'dragging' : ''} ${isSelected ? 'selected' : ''}" data-play-id="${play.id}">
           <div class="play-card-top">
             <div>
               <h3>${escapeHtml(play.name || 'Untitled Play')}</h3>
@@ -1006,21 +1112,29 @@
             </div>
             <div class="play-card-side">
               <div class="step-chip">${stepCount}</div>
-              <button class="reorder-handle" data-reorder-play-id="${play.id}" type="button" title="Drag to reorder" aria-label="Drag to reorder play">&#8645;</button>
+              ${APP_MODE === 'player' ? '' : `<button class="reorder-handle" data-reorder-play-id="${play.id}" type="button" title="Drag to reorder" aria-label="Drag to reorder play">&#8645;</button>`}
             </div>
           </div>
           <div class="play-card-actions">
-            <button class="pill-button primary" data-library-action="open">Edit</button>
-            <button class="pill-button secondary" data-library-action="review">Review</button>
-            <button class="pill-button secondary" data-library-action="duplicate">Duplicate</button>
-            <button class="pill-button danger" data-library-action="delete">Delete</button>
+            ${APP_MODE === 'player' ? playerActions : coachActions}
           </div>
         </article>`;
     }).join('');
 
+    if (APP_MODE === 'player') {
+      els.playList.querySelectorAll('[data-play-id]').forEach((card) => {
+        card.addEventListener('click', (event) => {
+          if (event.target.closest('button')) return;
+          handleLibraryAction(card.dataset.playId, 'review');
+        });
+      });
+    }
+
     els.playList.querySelectorAll('[data-library-action]').forEach((button) => {
       button.addEventListener('click', () => handleLibraryAction(button.closest('[data-play-id]').dataset.playId, button.dataset.libraryAction));
     });
+    if (APP_MODE === 'player') return;
+
     els.playList.querySelectorAll('[data-reorder-play-id]').forEach((button) => {
       button.addEventListener('pointerdown', beginPlayReorder);
     });
@@ -1067,6 +1181,16 @@
   function handleLibraryAction(playId, action) {
     const play = state.plays.find((item) => item.id === playId);
     if (!play) return;
+    if (APP_MODE === 'player') {
+      state.currentPlay = clone(play);
+      state.currentStepIndex = 0;
+      state.review.index = 0;
+      state.review.progress = 0;
+      state.review.playing = false;
+      setScreen('review');
+      renderAll();
+      return;
+    }
     if (action === 'open') {
       state.currentPlay = clone(play);
       state.currentStepIndex = 0;
@@ -1107,7 +1231,16 @@
   }
 
   function renderReview() {
-    if (!state.currentPlay) return;
+    if (!state.currentPlay) {
+      if (els.reviewSvg) els.reviewSvg.innerHTML = '';
+      [els.reviewBackBtn, els.reviewForwardBtn, els.playPauseBtn, els.restartBtn, els.fullscreenBtn].forEach((button) => {
+        if (button) button.disabled = true;
+      });
+      return;
+    }
+    [els.reviewBackBtn, els.reviewForwardBtn, els.playPauseBtn, els.restartBtn, els.fullscreenBtn].forEach((button) => {
+      if (button) button.disabled = false;
+    });
     const maxIndex = Math.max(0, state.currentPlay.steps.length - 1);
     state.review.index = Math.max(0, Math.min(state.review.index, maxIndex));
     els.playPauseBtn.textContent = state.review.playing ? '\u23f8' : '\u25b6';
@@ -1174,6 +1307,7 @@
   }
 
   function togglePlayback() {
+    if (!state.currentPlay) return;
     if (!state.review.playing && state.review.progress >= 1) {
       if (state.review.index < state.currentPlay.steps.length - 1) {
         state.review.index += 1;
@@ -1189,7 +1323,7 @@
   }
 
   function playbackTick(ts) {
-    if (!state.review.playing) return;
+    if (!state.review.playing || !state.currentPlay) return;
     const delta = ts - state.review.lastTs;
     state.review.lastTs = ts;
     const duration = 1650 / state.review.speed;
@@ -1203,6 +1337,7 @@
   }
 
   function jumpReviewStep(index) {
+    if (!state.currentPlay) return;
     state.review.index = Math.max(0, Math.min(state.currentPlay.steps.length - 1, index));
     state.review.progress = 0;
     state.review.playing = false;
@@ -1210,6 +1345,7 @@
   }
 
   function restartPlayback() {
+    if (!state.currentPlay) return;
     state.review.index = 0;
     state.review.progress = 0;
     state.review.playing = false;
@@ -1217,6 +1353,7 @@
   }
 
   function toggleReviewFullscreen() {
+    if (!state.currentPlay) return;
     const target = document.getElementById('reviewScreen');
     if (document.fullscreenElement) {
       document.exitFullscreen?.();
@@ -1444,11 +1581,92 @@
     };
   }
 
-  function parsePlaybookSnapshot(data) {
+  function parsePlaybookSnapshot(data, options = {}) {
+    if (options.strict) validatePlaybookSnapshot(data);
     const plays = Array.isArray(data?.plays) ? clone(data.plays) : [];
     if (!Array.isArray(data?.plays)) throw new Error('GitHub file does not contain a plays array');
     plays.forEach(normalizePlay);
     return plays;
+  }
+
+  function validatePlaybookSnapshot(data) {
+    if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error('Playbook JSON must be an object');
+    if (data.schemaVersion !== 1) throw new Error('Playbook JSON has an unsupported schema version');
+    if (!Array.isArray(data.plays)) throw new Error('Playbook JSON must contain a plays array');
+    data.plays.forEach((play, playIndex) => {
+      if (!play || typeof play !== 'object' || Array.isArray(play)) throw new Error(`Play ${playIndex + 1} is not valid`);
+      if (play.schemaVersion !== 1) throw new Error(`Play ${playIndex + 1} has an unsupported schema version`);
+      if (typeof play.id !== 'string' || !play.id) throw new Error(`Play ${playIndex + 1} is missing an id`);
+      if (!Array.isArray(play.steps) || play.steps.length === 0) throw new Error(`Play ${playIndex + 1} must contain steps`);
+      play.steps.forEach((step, stepIndex) => {
+        if (!step || typeof step !== 'object' || Array.isArray(step)) throw new Error(`Play ${playIndex + 1}, step ${stepIndex + 1} is not valid`);
+        if (!step.entities || typeof step.entities !== 'object' || Array.isArray(step.entities)) throw new Error(`Play ${playIndex + 1}, step ${stepIndex + 1} is missing entities`);
+        if (!Array.isArray(step.entities.players)) throw new Error(`Play ${playIndex + 1}, step ${stepIndex + 1} is missing players`);
+        if (!Array.isArray(step.actions)) throw new Error(`Play ${playIndex + 1}, step ${stepIndex + 1} is missing actions`);
+      });
+    });
+  }
+
+  async function loadPlayerPlaybook() {
+    setPlayerStatus('loading', 'Updating playbook...');
+    try {
+      const data = await fetchPlayerSnapshot();
+      const plays = parsePlaybookSnapshot(data, { strict: true });
+      state.plays = plays;
+      state.currentPlay = state.plays[0] ? clone(state.plays[0]) : null;
+      state.currentStepIndex = 0;
+      state.review.index = 0;
+      state.review.progress = 0;
+      state.review.playing = false;
+      localStorage.setItem(PLAYER_CACHE_KEY, JSON.stringify(data));
+      setPlayerStatus('hidden', '');
+      renderAll();
+    } catch (error) {
+      console.error(error);
+      const cached = loadPlayerCache();
+      if (cached) {
+        state.plays = cached.plays;
+        state.currentPlay = state.plays[0] ? clone(state.plays[0]) : null;
+        state.currentStepIndex = 0;
+        state.review.index = 0;
+        state.review.progress = 0;
+        state.review.playing = false;
+        setPlayerStatus('warning', 'Could not update playbook. Showing the last downloaded version.');
+        renderAll();
+        return;
+      }
+      state.plays = [];
+      state.currentPlay = null;
+      renderAll();
+      setPlayerStatus('error', error.message?.includes('schema') || error.message?.includes('Playbook JSON')
+        ? 'Playbook data is invalid. Please try again later.'
+        : 'Playbook could not be loaded. Please check your connection and try again.');
+    }
+  }
+
+  async function fetchPlayerSnapshot() {
+    const response = await fetch(`${PLAYER_JSON_URL}?v=${Date.now()}`, { cache: 'no-store' });
+    if (!response.ok) throw new Error(`Playbook could not be loaded. HTTP ${response.status}`);
+    return response.json();
+  }
+
+  function loadPlayerCache() {
+    try {
+      const data = JSON.parse(localStorage.getItem(PLAYER_CACHE_KEY) || 'null');
+      if (!data) return null;
+      return { plays: parsePlaybookSnapshot(data, { strict: true }) };
+    } catch (error) {
+      console.warn('Player cache ignored because it is invalid.', error);
+      return null;
+    }
+  }
+
+  function setPlayerStatus(kind, message) {
+    if (!els.playerStatus) return;
+    els.playerStatus.className = `player-status ${kind === 'hidden' ? 'hidden' : kind}`;
+    const statusMessage = els.playerStatus.querySelector('[data-player-status-message]');
+    if (statusMessage) statusMessage.textContent = message;
+    els.retryPlayerLoadBtn?.classList.toggle('hidden', kind !== 'error');
   }
 
   function replacePlaybookSnapshot(data) {
@@ -1505,6 +1723,29 @@
     localStorage.removeItem(STORAGE.github);
     loadGitHubSettingsIntoForm();
     showToast('GitHub settings cleared');
+  }
+
+  async function copyPlayerLink() {
+    try {
+      await navigator.clipboard.writeText(PLAYER_LINK);
+      showToast('Player link copied');
+    } catch {
+      const textarea = document.createElement('textarea');
+      textarea.value = PLAYER_LINK;
+      textarea.setAttribute('readonly', '');
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      textarea.remove();
+      showToast('Player link copied');
+    }
+  }
+
+  function lockCoachMode() {
+    localStorage.removeItem(COACH_UNLOCK_KEY);
+    window.location.reload();
   }
 
   function requireGitHubSettings() {
