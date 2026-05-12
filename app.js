@@ -169,6 +169,11 @@
       coachGateMessage: document.getElementById('coachGateMessage'),
       lockCoachBtn: document.getElementById('lockCoachBtn'),
       copyPlayerLinkBtn: document.getElementById('copyPlayerLinkBtn'),
+      playerCoachAccessBtn: document.getElementById('playerCoachAccessBtn'),
+      playerCoachDialog: document.getElementById('playerCoachDialog'),
+      playerCoachPasscode: document.getElementById('playerCoachPasscode'),
+      playerCoachUnlockBtn: document.getElementById('playerCoachUnlockBtn'),
+      playerCoachMessage: document.getElementById('playerCoachMessage'),
       playerStatus: document.getElementById('playerStatus'),
       retryPlayerLoadBtn: document.getElementById('retryPlayerLoadBtn')
     });
@@ -271,6 +276,35 @@
       state.review.speed = Number(els.speedSlider.value);
     });
     els.retryPlayerLoadBtn?.addEventListener('click', loadPlayerPlaybook);
+    els.playerCoachAccessBtn?.addEventListener('click', openPlayerCoachAccess);
+    els.playerCoachUnlockBtn?.addEventListener('click', handlePlayerCoachUnlock);
+    els.playerCoachPasscode?.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        handlePlayerCoachUnlock();
+      }
+    });
+  }
+
+  function openPlayerCoachAccess() {
+    if (localStorage.getItem(COACH_UNLOCK_KEY) === 'true') {
+      window.location.href = 'coach.html';
+      return;
+    }
+    if (els.playerCoachMessage) els.playerCoachMessage.textContent = '';
+    if (els.playerCoachPasscode) els.playerCoachPasscode.value = '';
+    els.playerCoachDialog?.showModal();
+    els.playerCoachPasscode?.focus();
+  }
+
+  function handlePlayerCoachUnlock() {
+    if (els.playerCoachPasscode?.value === COACH_PASSCODE) {
+      localStorage.setItem(COACH_UNLOCK_KEY, 'true');
+      window.location.href = 'coach.html';
+      return;
+    }
+    if (els.playerCoachMessage) els.playerCoachMessage.textContent = 'That passcode did not unlock coach mode.';
+    els.playerCoachPasscode?.select();
   }
 
   function attachViewportEvents() {

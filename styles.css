@@ -769,6 +769,15 @@ body.review-fullscreen-active {
   font-weight: 750;
 }
 
+.coach-access-dialog .coach-gate-message {
+  margin-top: -4px;
+  margin-bottom: 10px;
+}
+
+.coach-access-grid {
+  margin-bottom: 8px;
+}
+
 .player-status {
   display: flex;
   align-items: center;
