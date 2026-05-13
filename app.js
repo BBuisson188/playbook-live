@@ -1782,18 +1782,18 @@
     window.location.reload();
   }
 
-  function requireGitHubSettings() {
+  function requireGitHubSaveSettings() {
     const settings = getGitHubSettings();
     if (!settings.owner || !settings.repo || !settings.branch || !settings.path || !settings.token) {
       els.settingsDialog.showModal();
-      showToast('Add GitHub settings first');
+      showToast('Add GitHub save settings first');
       return null;
     }
     return settings;
   }
 
   async function savePlaybookToGitHub() {
-    const settings = requireGitHubSettings();
+    const settings = requireGitHubSaveSettings();
     if (!settings) return;
     if (!confirm('This will overwrite the GitHub playbook snapshot. Continue?')) return;
     saveCurrentPlayToLibrary();
@@ -1827,21 +1827,25 @@
   }
 
   async function loadPlaybookFromGitHub() {
-    const settings = requireGitHubSettings();
-    if (!settings) return;
     if (!confirm('Loading from GitHub will completely replace your current local playbook. Continue?')) return;
+    const url = publicPlaybookUrl();
     try {
-      const response = await fetch(githubContentsUrl(settings, true), { headers: githubHeaders(settings) });
+      const response = await fetch(url, { cache: 'no-store' });
       if (!response.ok) throw new Error(`HTTP ${response.status}: ${await response.text()}`);
-      const json = await response.json();
-      const content = base64ToUtf8(json.content || '');
-      const data = JSON.parse(content);
+      const data = await response.json();
       replacePlaybookSnapshot(data);
-      showSyncResult('success', 'Loaded from GitHub', `Loaded ${state.plays.length} play${state.plays.length === 1 ? '' : 's'} from ${settings.owner}/${settings.repo}:${settings.path}.`);
+      showSyncResult('success', 'Loaded from GitHub', `Loaded ${state.plays.length} play${state.plays.length === 1 ? '' : 's'} from the published playbook JSON.`);
     } catch (error) {
       console.error(error);
       showSyncResult('error', 'GitHub load failed', 'The playbook was not loaded from GitHub.', error.message || String(error));
     }
+  }
+
+  function publicPlaybookUrl() {
+    const settings = getGitHubSettings();
+    const path = settings.path?.trim() || PLAYER_JSON_URL;
+    const separator = path.includes('?') ? '&' : '?';
+    return `${path}${separator}v=${Date.now()}`;
   }
 
   function showSyncResult(kind, title, message, details = '') {
