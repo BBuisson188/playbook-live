@@ -38,8 +38,8 @@
           </div>
         </div>
         <div class="header-actions">
-          <button class="icon-button" id="undoBtn" title="Undo" aria-label="Undo">&#8630;</button>
-          <button class="icon-button" id="redoBtn" title="Redo" aria-label="Redo">&#8631;</button>
+          <span class="tooltip-target" data-tooltip="Undo: reverse your last edit."><button class="icon-button" id="undoBtn" aria-label="Undo">&#8630;</button></span>
+          <span class="tooltip-target" data-tooltip="Redo: restore an edit you just undid."><button class="icon-button" id="redoBtn" aria-label="Redo">&#8631;</button></span>
           <button class="icon-button" id="settingsBtn" title="Settings" aria-label="Settings">&#9881;</button>
         </div>
       </header>
@@ -77,8 +77,16 @@
                   </button>
                 </div>
               </div>
+              <div id="actionInspector" class="selection-panel hidden" aria-label="Selected action settings">
+                <div class="sr-only">
+                  <div id="selectedActionName" class="selection-title"></div>
+                  <div id="actionTimingLabel" class="selection-sub"></div>
+                </div>
+                <label class="action-delay-toggle" data-tooltip="Delay this action until halfway through the step.">
+                  <input id="actionDelayToggle" type="checkbox" role="switch" aria-label="Delay start" />Delay
+                </label>
+              </div>
             </div>
-
             <div class="editor-footer">
               <div class="step-controls" aria-label="Step controls">
                 <button id="prevStepBtn" class="icon-button" title="Previous step" aria-label="Previous step">&#8249;</button>
@@ -142,6 +150,7 @@
               <button id="fullscreenBtn" class="fullscreen-button" type="button" title="Full screen" aria-label="Full screen">&#9974;</button>
             </div>
             <div class="review-controls">
+              <span id="reviewStepStatus" class="review-step-status" role="status" aria-live="polite"></span>
               <button id="reviewBackBtn" class="icon-button large">&#8249;</button>
               <button id="playPauseBtn" class="play-button">&#9654;</button>
               <button id="reviewForwardBtn" class="icon-button large">&#8250;</button>
@@ -221,6 +230,8 @@
     </dialog>
 
     <script src="playbook-model.js"></script>
+    <script src="playback-model.js"></script>
+    <script src="tooltips.js"></script>
     <script src="app.js"></script>
   </body>
 </html>

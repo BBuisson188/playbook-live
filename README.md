@@ -26,7 +26,8 @@ This starter is intentionally built as a static app so it can run on GitHub Page
 - Local playbook saving with `localStorage`
 - Per-step previous-motion shadows
 - Manual GitHub save/load through the GitHub Contents API
-- Animated review mode with play/pause, restart, step forward/back, and speed control
+- Full-sequence animated review with play/pause, restart, step forward/back, speed control, and short pauses between steps
+- Per-action delayed starts and touch-friendly press-and-hold tooltips
 - PWA manifest and service worker
 - App icons
 
@@ -102,6 +103,13 @@ Save to GitHub overwrites the configured JSON file with the entire local playboo
 - **Last Step** removes every step after the selected step, after confirmation.
 - Both deletion operations support Undo. Save the play to retain the edit, then save to GitHub to update players.
 - **Previous step shadow** shows the immediately preceding step's paths at reduced opacity behind the selected step. It is saved independently for each step, supports Undo, and also appears during review and in player mode. The first step has no previous step, so its toggle is disabled.
+- With **Select** active, tap an action to reveal **Delay start**. Delayed actions wait until halfway through the step and animate during the remaining time. The setting supports Undo/Redo and is published with the play.
+- The compact Delay switch floats in the court's top corner and does not change the court size.
+- Review plays through the remaining steps automatically. At normal speed, each step lasts 1.65 seconds with a one-third-second pause before the next step. The speed slider scales both movement and pauses. Playback stops at the final position; pressing Play again replays from the beginning.
+- Review's next/back arrows animate one step forward or rewind to the preceding step's start, rather than jumping between static diagrams. Manual stepping also follows the speed slider.
+- Screeners stop short of the black T marker; the marker is also retained in previous-step shadows. Linked positions in existing plays are adjusted in memory to avoid a jump after a screen.
+- During dribbles the basketball grows and shrinks subtly as it follows the player. Delayed dribbles start that pulse only when the action begins.
+- On iPad, hold an icon button to see its description. Holding shows help without activating the control. Undo reverses the last edit; Redo restores an undone edit. Desktop hover and keyboard focus also show tooltips.
 
 ### Editing
 
@@ -117,7 +125,7 @@ Save to GitHub overwrites the configured JSON file with the entire local playboo
 
 ## Notes
 
-Run the data regression tests with `node --test tests/playbook-model.test.cjs`.
+Run the data and playback regression tests with `node --test`.
 The optional `node tests/browser-smoke.cjs` check requires Playwright and Chrome; set `PLAYWRIGHT_MODULE` to a bundled Playwright module path if it is not locally installed. It uses an isolated browser, starts its own temporary HTTP server, and closes both after testing. Screenshots are written to the ignored `.test-results/` folder.
 
 This is a complete first-version starter, but it is still meant for Codex iteration. The highest-value improvements are listed in `HANDOFF.md`.

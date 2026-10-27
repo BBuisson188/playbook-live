@@ -59,6 +59,57 @@ async function run() {
   }, plays);
   await page.goto(`${origin}/coach.html`);
   await page.locator('#editorStepSelect option').nth(39).waitFor({ state: 'attached' });
+  await page.locator('[data-tool="select"]').click();
+  const actionPoint = await page.locator('#courtSvg .actions-layer path[data-action-id]').first().evaluate((path) => {
+    for (const fraction of [0.5, 0.35, 0.65, 0.2, 0.8]) {
+      const point = path.getPointAtLength(path.getTotalLength() * fraction);
+      const screen = new DOMPoint(point.x, point.y).matrixTransform(path.getScreenCTM());
+      if (document.elementFromPoint(screen.x, screen.y)?.getAttribute('data-action-id') === path.dataset.actionId) {
+        return { x: screen.x, y: screen.y, id: path.dataset.actionId };
+      }
+    }
+    throw new Error('No unobstructed action point for selection test');
+  });
+  await page.mouse.click(actionPoint.x, actionPoint.y);
+  await page.locator('#actionInspector:not(.hidden)').waitFor();
+  await page.check('#actionDelayToggle');
+  assert.match(await page.locator('#actionTimingLabel').textContent(), /halfway/);
+  const undoBounds = await page.locator('#undoBtn').boundingBox();
+  await page.mouse.move(undoBounds.x + undoBounds.width / 2, undoBounds.y + undoBounds.height / 2);
+  await page.mouse.down();
+  await page.locator('#controlTooltip:not(.hidden)').filter({ hasText: 'Undo' }).waitFor();
+  await fs.mkdir(path.join(root, '.test-results'), { recursive: true });
+  await page.screenshot({ path: path.join(root, '.test-results/action-delay-help.png') });
+  await page.mouse.up();
+  assert.equal(await page.locator('#actionDelayToggle').isChecked(), true, 'Holding Undo must not perform Undo');
+  await page.click('#undoBtn');
+  assert.equal(await page.locator('#actionDelayToggle').isChecked(), false);
+  await page.click('#redoBtn');
+  assert.equal(await page.locator('#actionDelayToggle').isChecked(), true);
+  const redoBounds = await page.locator('#redoBtn').boundingBox();
+  await page.mouse.move(redoBounds.x + redoBounds.width / 2, redoBounds.y + redoBounds.height / 2);
+  await page.mouse.down();
+  await page.locator('#controlTooltip:not(.hidden)').filter({ hasText: 'Redo' }).waitFor();
+  await page.mouse.up();
+  assert.equal(await page.locator('#actionDelayToggle').isChecked(), true);
+  await page.keyboard.press('Escape');
+  for (const [name, width, height] of [['phone', 390, 844], ['tablet', 768, 1024], ['desktop', 1440, 900], ['landscape', 844, 390]]) {
+    await page.setViewportSize({ width, height });
+    await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    const inspectorFits = await page.evaluate(() => {
+      const svg = document.querySelector('#courtSvg');
+      const inspector = document.querySelector('#actionInspector');
+      const shown = svg.getBoundingClientRect();
+      inspector.style.display = 'none';
+      const hidden = svg.getBoundingClientRect();
+      inspector.style.removeProperty('display');
+      return shown.height > 60 && Math.abs(shown.height - hidden.height) < 1 && Math.abs(shown.width - hidden.width) < 1 && getComputedStyle(inspector).position === 'absolute';
+    });
+    assert.equal(inspectorFits, true, `Action settings must not shrink the court on ${name}`);
+    await page.screenshot({ path: path.join(root, `.test-results/action-delay-${name}.png`) });
+  }
+  await page.setViewportSize({ width: 390, height: 844 });
+  console.log('PASS: selecting an action exposes delay; undo/redo work; holding enabled and disabled controls explains without activating');
   assert.equal(await page.locator('#previousStepShadow').isDisabled(), true);
   await page.selectOption('#editorStepSelect', '5');
   await page.check('#previousStepShadow');
@@ -124,6 +175,7 @@ async function run() {
   assert.equal(snapshot.categories.find((category) => category.id === later).hidden, true);
   assert.equal(snapshot.plays.find((play) => play.id === 'alpha').steps.length, 5);
   assert.equal(snapshot.plays.find((play) => play.id === 'alpha').steps[4].showPreviousStep, true);
+  assert.equal(snapshot.plays.find((play) => play.id === 'alpha').steps[0].actions.find((action) => action.id === actionPoint.id).delayed, true);
   servedSnapshot = snapshot;
   await page.locator('[data-play-id="alpha"] [data-library-action="open"]').click();
   assert.equal(await page.inputValue('#editorCategory'), zone);
@@ -202,12 +254,40 @@ async function run() {
   assert.equal(await player.locator('#libraryCategoryFilter option').filter({ hasText: 'Later' }).count(), 0);
   assert.equal(await player.locator('[data-order-target], [data-play-category], #deleteStepBtn').count(), 0);
   await player.locator('[data-play-id="alpha"] [data-library-action="review"]').click();
-  for (let index = 0; index < 4; index += 1) await player.click('#reviewForwardBtn');
+  await player.locator('#speedSlider').focus();
+  await player.locator('#speedSlider').press('End');
+  for (let index = 0; index < 4; index += 1) {
+    await player.click('#reviewForwardBtn');
+    await player.waitForFunction((step) => document.querySelector('#reviewStepStatus').textContent === `Step ${step} of 5`, index + 2);
+  }
+  await player.click('#reviewBackBtn');
+  await player.waitForFunction(() => document.querySelector('#reviewStepStatus').textContent.includes('Rewinding'));
+  await player.waitForFunction(() => document.querySelector('#reviewStepStatus').textContent === 'Step 4 of 5');
+  await player.click('#reviewForwardBtn');
+  await player.waitForFunction(() => document.querySelector('#reviewStepStatus').textContent === 'Step 5 of 5');
   assert.equal(await player.locator('#reviewSvg .previous-step-layer').count(), 1);
   await player.click('#playPauseBtn');
   await player.waitForFunction(() => document.querySelector('#playPauseBtn').textContent === '\u23f8');
   await player.click('#playPauseBtn');
   await player.screenshot({ path: path.join(root, '.test-results/player-review.png') });
+  await player.click('#restartBtn');
+  await player.locator('#speedSlider').focus();
+  await player.locator('#speedSlider').press('End');
+  assert.equal(await player.inputValue('#speedSlider'), '2');
+  await player.click('#playPauseBtn');
+  await player.waitForFunction(() => document.querySelector('#reviewStepStatus').textContent.includes('Pause'), null, { timeout: 7000 });
+  await player.click('#playPauseBtn');
+  const pausedStep = await player.locator('#reviewStepStatus').textContent();
+  await player.waitForTimeout(450);
+  assert.equal(await player.locator('#reviewStepStatus').textContent(), pausedStep);
+  await player.click('#playPauseBtn');
+  await player.waitForFunction(() => document.querySelector('#reviewStepStatus').textContent.startsWith('Step 2 of 5'), null, { timeout: 5000 });
+  await player.waitForFunction(() => document.querySelector('#reviewStepStatus').textContent.includes('Complete'), null, { timeout: 15000 });
+  assert.equal(await player.locator('#playPauseBtn').getAttribute('aria-label'), 'Play full sequence');
+  await player.click('#playPauseBtn');
+  await player.waitForFunction(() => document.querySelector('#reviewStepStatus').textContent.startsWith('Step 1 of 5'));
+  await player.click('#playPauseBtn');
+  console.log('PASS: continuous full-play review, inter-step hold, pause/resume during hold, speed changes and replay from the beginning');
   await player.route('**/data/playbook-live.json*', (route) => route.abort());
   await player.reload();
   await player.locator('.player-status.warning').waitFor();
@@ -241,6 +321,13 @@ async function run() {
   await empty.goto(`${origin}/coach.html`);
   await empty.click('[data-screen="playbook"]');
   assert.equal(await empty.locator('[data-play-id]').count(), 0);
+  const touch = await emptyContext.newCDPSession(empty);
+  const disabledUndo = await empty.locator('#undoBtn').boundingBox();
+  await touch.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: disabledUndo.x + disabledUndo.width / 2, y: disabledUndo.y + disabledUndo.height / 2 }] });
+  await empty.locator('#controlTooltip:not(.hidden)').filter({ hasText: 'Undo' }).waitFor();
+  await touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  assert.equal(await empty.locator('[data-play-id]').count(), 0);
+  console.log('PASS: real touch long-press shows help for disabled Undo without triggering an edit');
   console.log('PASS: invalid JSON preserves cache; empty-cache errors retry; touch zoom and selection guards');
 
   const offlineContext = await browser.newContext({ serviceWorkers: 'allow' });

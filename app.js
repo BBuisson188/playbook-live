@@ -15,6 +15,7 @@
   const PLAYER_CACHE_KEY = 'playbook-live:player-json-cache';
   const PLAYER_LINK = 'https://bbuisson188.github.io/playbook-live/player.html';
   const model = PlaybookModel;
+  const playback = PlaybackModel;
   const STORAGE = {
     plays: 'playbook-live:plays:v1',
     categories: 'playbook-live:categories:v1',
@@ -56,6 +57,8 @@
     review: {
       index: 0,
       progress: 0,
+      pauseElapsed: 0,
+      manual: null,
       playing: false,
       lastTs: 0,
       speed: 1,
@@ -151,6 +154,10 @@
       reviewSvg: document.getElementById('reviewSvg'),
       playName: document.getElementById('playName'),
       stepChip: document.getElementById('stepChip'),
+      actionInspector: document.getElementById('actionInspector'),
+      selectedActionName: document.getElementById('selectedActionName'),
+      actionTimingLabel: document.getElementById('actionTimingLabel'),
+      actionDelayToggle: document.getElementById('actionDelayToggle'),
       courtChooser: document.getElementById('courtChooser'),
       toast: document.getElementById('toast'),
       undoBtn: document.getElementById('undoBtn'),
@@ -190,6 +197,7 @@
       reviewBackBtn: document.getElementById('reviewBackBtn'),
       reviewForwardBtn: document.getElementById('reviewForwardBtn'),
       playPauseBtn: document.getElementById('playPauseBtn'),
+      reviewStepStatus: document.getElementById('reviewStepStatus'),
       restartBtn: document.getElementById('restartBtn'),
       speedSlider: document.getElementById('speedSlider'),
       fullscreenBtn: document.getElementById('fullscreenBtn'),
@@ -259,6 +267,16 @@
       renderCreate();
       renderReview();
     });
+    els.actionDelayToggle.addEventListener('change', () => {
+      if (state.tool !== 'select' || state.selected?.kind !== 'action') return;
+      const action = findAction(currentStep(), state.selected.id);
+      if (!action) return;
+      checkpoint();
+      action.delayed = els.actionDelayToggle.checked;
+      state.currentPlay.updatedAt = new Date().toISOString();
+      renderCreate();
+      renderReview();
+    });
     els.editorCategory.addEventListener('change', () => {
       checkpoint();
       state.currentPlay.categoryId = els.editorCategory.value || null;
@@ -301,8 +319,8 @@
     els.clearGitHubBtn.addEventListener('click', clearGitHubSettings);
     els.lockCoachBtn?.addEventListener('click', lockCoachMode);
 
-    els.reviewBackBtn.addEventListener('click', () => jumpReviewStep(state.review.index - 1));
-    els.reviewForwardBtn.addEventListener('click', () => jumpReviewStep(state.review.index + 1));
+    els.reviewBackBtn.addEventListener('click', () => animateReviewStep(-1));
+    els.reviewForwardBtn.addEventListener('click', () => animateReviewStep(1));
     els.playPauseBtn.addEventListener('click', togglePlayback);
     els.restartBtn.addEventListener('click', restartPlayback);
     els.fullscreenBtn.addEventListener('click', toggleReviewFullscreen);
@@ -334,8 +352,8 @@
       button.addEventListener('click', () => setScreen(button.dataset.screen));
     });
 
-    els.reviewBackBtn?.addEventListener('click', () => jumpReviewStep(state.review.index - 1));
-    els.reviewForwardBtn?.addEventListener('click', () => jumpReviewStep(state.review.index + 1));
+    els.reviewBackBtn?.addEventListener('click', () => animateReviewStep(-1));
+    els.reviewForwardBtn?.addEventListener('click', () => animateReviewStep(1));
     els.playPauseBtn?.addEventListener('click', togglePlayback);
     els.restartBtn?.addEventListener('click', restartPlayback);
     els.fullscreenBtn?.addEventListener('click', toggleReviewFullscreen);
@@ -377,6 +395,12 @@
   function attachViewportEvents() {
     window.addEventListener('resize', renderAll);
     window.addEventListener('orientationchange', renderAll);
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden && state.review.playing) {
+        stopPlayback();
+        renderReview();
+      }
+    });
     document.addEventListener('fullscreenchange', () => {
       if (!document.fullscreenElement) {
         document.getElementById('reviewScreen')?.classList.remove('ios-fullscreen');
@@ -484,6 +508,7 @@
       if (!Array.isArray(step.entities.players)) step.entities.players = [];
       if (!Array.isArray(step.actions)) step.actions = [];
     });
+    playback.normalizeScreenContinuity(play);
   }
 
   function setTool(tool) {
@@ -928,8 +953,9 @@
       if (action.type === 'move' || action.type === 'screen') {
         const player = entities.players.find((item) => item.id === action.actorId);
         if (player) {
-          player.x = action.to.x;
-          player.y = action.to.y;
+          const end = playback.actionEnd(action);
+          player.x = end.x;
+          player.y = end.y;
         }
       }
 
@@ -982,7 +1008,7 @@
         if (target) action.to = playerBallPosition(target);
       }
       if (['move', 'dribble', 'screen'].includes(action.type) && action.actorId !== 'ball') {
-        actorPositions.set(action.actorId, { x: action.to.x, y: action.to.y });
+        actorPositions.set(action.actorId, playback.actionEnd(action));
       }
     });
   }
@@ -1007,7 +1033,15 @@
         const previousAction = [...previous.actions].reverse().find((action) =>
           ['move', 'dribble', 'screen'].includes(action.type) && action.actorId === id
         );
-        if (previousAction) previousAction.to = { x: pos.x, y: pos.y };
+        if (previousAction) {
+          if (previousAction.type === 'screen') {
+            const direction = previousAction.control || previousAction.from;
+            const dx = previousAction.to.x - direction.x;
+            const dy = previousAction.to.y - direction.y;
+            const length = Math.hypot(dx, dy) || 1;
+            previousAction.to = { x: pos.x + dx / length * playback.SCREEN_CLEARANCE, y: pos.y + dy / length * playback.SCREEN_CLEARANCE };
+          } else previousAction.to = { x: pos.x, y: pos.y };
+        }
         else {
           const previousPlayer = findPlayer(previous, id);
           if (previousPlayer) {
@@ -1061,6 +1095,13 @@
     els.undoBtn.disabled = state.undoStack.length === 0;
     els.redoBtn.disabled = state.redoStack.length === 0;
     els.courtChooser.classList.toggle('hidden', Boolean(state.currentPlay.courtType));
+    const action = state.tool === 'select' && state.selected?.kind === 'action' ? findAction(currentStep(), state.selected.id) : null;
+    els.actionInspector.classList.toggle('hidden', !action);
+    if (action) {
+      els.selectedActionName.textContent = ACTION_LABELS[action.type] || 'Action';
+      els.actionDelayToggle.checked = action.delayed === true;
+      els.actionTimingLabel.textContent = action.delayed ? 'Starts halfway through step' : 'Starts immediately';
+    }
     renderCourt(els.courtSvg, currentStep(), {
       courtType: state.currentPlay.courtType,
       selected: state.selected,
@@ -1091,15 +1132,23 @@
     if (options.draftAction) drawAction(actionLayer, { ...options.draftAction, ghost: true }, false, false);
     svg.appendChild(actionLayer);
 
-    if (options.showHandles && selected?.kind === 'action') {
-      const action = findAction(step, selected.id);
-      if (action) drawActionHandles(svg, action);
-    }
-
     const entityLayer = el('g', { class: 'entities-layer' });
     step.entities.players.forEach((player) => drawPlayer(entityLayer, player, selected?.kind === 'player' && selected.id === player.id, options.interactive));
     if (step.entities.ball) drawBall(entityLayer, resolvedBall(step.entities), selected?.kind === 'ball', options.interactive);
     svg.appendChild(entityLayer);
+    if (options.previousStep) {
+      const shadowMarkers = el('g', { class: 'previous-screen-markers', 'aria-hidden': 'true' });
+      options.previousStep.actions.filter((action) => action.type === 'screen').forEach((action) => drawScreenMarker(shadowMarkers, action, false, false));
+      svg.appendChild(shadowMarkers);
+    }
+    const markers = el('g', { class: 'screen-markers' });
+    step.actions.filter((action) => action.type === 'screen').forEach((action) => drawScreenMarker(markers, action, selected?.id === action.id, options.interactive));
+    if (options.draftAction?.type === 'screen') drawScreenMarker(markers, options.draftAction, false, false);
+    svg.appendChild(markers);
+    if (options.showHandles && selected?.kind === 'action') {
+      const action = findAction(step, selected.id);
+      if (action) drawActionHandles(svg, action);
+    }
   }
 
   function drawCourtBase(svg, courtType = 'full') {
@@ -1173,17 +1222,18 @@
     });
     parent.appendChild(path);
 
-    if (action.type === 'screen') {
-      const bar = screenBar(action.control || action.from, action.to);
-      parent.appendChild(el('line', {
+  }
+
+  function drawScreenMarker(parent, action, isSelected, interactive) {
+    const bar = screenBar(action.control || action.from, action.to);
+    parent.appendChild(el('line', {
         x1: bar.x1,
         y1: bar.y1,
         x2: bar.x2,
         y2: bar.y2,
-        class: `action-path action-screen ${isSelected ? 'selected' : ''}`,
+        class: `action-path action-screen screen-marker ${isSelected ? 'selected' : ''}`,
         'data-action-id': interactive ? action.id : null
-      }));
-    }
+    }));
   }
 
   function drawActionHandles(svg, action) {
@@ -1231,7 +1281,7 @@
   function drawBall(parent, ball, selected, interactive) {
     const group = el('g', {
       class: `ball-node ${selected ? 'selected' : ''}`,
-      transform: `translate(${ball.x} ${ball.y})`,
+      transform: `translate(${ball.x} ${ball.y}) scale(${ball.dribbleScale || 1})`,
       'data-entity-kind': interactive ? 'ball' : null,
       'data-entity-id': interactive ? 'ball' : null
     });
@@ -1485,6 +1535,7 @@
 
   function renderReview() {
     if (!state.currentPlay) {
+      els.reviewStepStatus.textContent = 'No play selected';
       if (els.reviewSvg) els.reviewSvg.innerHTML = '';
       [els.reviewBackBtn, els.reviewForwardBtn, els.playPauseBtn, els.restartBtn, els.fullscreenBtn].forEach((button) => {
         if (button) button.disabled = true;
@@ -1497,6 +1548,12 @@
     const maxIndex = Math.max(0, state.currentPlay.steps.length - 1);
     state.review.index = Math.max(0, Math.min(state.review.index, maxIndex));
     els.playPauseBtn.textContent = state.review.playing ? '\u23f8' : '\u25b6';
+    els.playPauseBtn.setAttribute('aria-label', state.review.playing ? 'Pause playback' : 'Play full sequence');
+    els.reviewBackBtn.disabled = state.review.index === 0 && state.review.progress <= 0;
+    els.reviewForwardBtn.disabled = state.review.index === maxIndex && state.review.progress >= 1;
+    const phase = state.review.manual ? (state.review.manual.direction < 0 ? ' - Rewinding' : ' - Advancing') : state.review.progress >= 1 ? (state.review.playing ? ' - Pause' : state.review.index === maxIndex ? ' - Complete' : '') : '';
+    const status = `Step ${state.review.index + 1} of ${state.currentPlay.steps.length}${phase}`;
+    if (els.reviewStepStatus.textContent !== status) els.reviewStepStatus.textContent = status;
     const step = state.currentPlay.steps[state.review.index];
     const frame = frameStep(step, state.review.progress);
     renderCourt(els.reviewSvg, frame, {
@@ -1509,54 +1566,8 @@
 
   function frameStep(step, t) {
     const frame = clone(step);
-    const entities = clone(step.entities);
-    const playerMovement = new Map();
-    step.actions.forEach((action) => {
-      if (['move', 'dribble', 'screen'].includes(action.type)) {
-        const items = playerMovement.get(action.actorId) || [];
-        items.push(action);
-        playerMovement.set(action.actorId, items);
-      }
-    });
-
-    playerMovement.forEach((actions, playerId) => {
-      const player = entities.players.find((item) => item.id === playerId);
-      if (!player) return;
-      const scaled = Math.min(0.999, t) * actions.length;
-      const index = Math.min(actions.length - 1, Math.floor(scaled));
-      const action = actions[index];
-      const segmentT = easeInOut(scaled - index);
-      const pos = action.control ? quadraticPoint(action.from, action.control, action.to, segmentT) : {
-        x: lerp(action.from.x, action.to.x, segmentT),
-        y: lerp(action.from.y, action.to.y, segmentT)
-      };
-      player.x = pos.x;
-      player.y = pos.y;
-      if (action.type === 'dribble') {
-        entities.ball = { ...playerBallPosition(player), ownerId: player.id };
-      }
-    });
-
-    step.actions.forEach((action) => {
-      if (action.type === 'dribble' && !playerMovement.has(action.actorId)) {
-        const player = entities.players.find((item) => item.id === action.actorId);
-        if (player) {
-          player.x = lerp(action.from.x, action.to.x, easeInOut(t));
-          player.y = lerp(action.from.y, action.to.y, easeInOut(t));
-          entities.ball = { ...playerBallPosition(player), ownerId: player.id };
-        }
-      }
-      if (action.type === 'pass') {
-        const start = action.actorId === 'ball' ? resolvedBall(step.entities) : playerBallPosition(findPlayer(step, action.actorId) || action.from);
-        entities.ball = {
-          x: lerp(start.x, action.to.x, easeOut(t)),
-          y: lerp(start.y, action.to.y, easeOut(t)),
-          ownerId: t >= 1 ? action.targetPlayerId || null : null
-        };
-      }
-    });
-    if (t >= 1) frame.entities = deriveEndEntities(step);
-    else frame.entities = entities;
+    const court = getCourtConfig(state.currentPlay.courtType || 'full');
+    frame.entities = t >= 1 ? deriveEndEntities(step) : playback.frameEntities(step, t, court.width, court.height);
     return frame;
   }
 
@@ -1567,13 +1578,10 @@
       renderReview();
       return;
     }
-    if (!state.review.playing && state.review.progress >= 1) {
-      if (state.review.index < state.currentPlay.steps.length - 1) {
-        state.review.index += 1;
-        state.review.progress = 0;
-      } else {
-        state.review.progress = 0;
-      }
+    if (state.review.progress >= 1 && state.review.index === state.currentPlay.steps.length - 1) {
+      state.review.index = 0;
+      state.review.progress = 0;
+      state.review.pauseElapsed = 0;
     }
     state.review.playing = !state.review.playing;
     state.review.lastTs = performance.now();
@@ -1585,22 +1593,23 @@
     if (!state.review.playing || !state.currentPlay) return;
     const delta = ts - state.review.lastTs;
     state.review.lastTs = ts;
-    const duration = 1650 / state.review.speed;
-    state.review.progress += delta / duration;
-    if (state.review.progress >= 1) {
-      state.review.progress = 1;
-      state.review.playing = false;
-    }
+    const advance = state.review.manual ? playback.advanceManual : playback.advance;
+    Object.assign(state.review, advance(state.review, delta, state.currentPlay.steps.length));
     renderReview();
     if (state.review.playing) state.review.raf = requestAnimationFrame(playbackTick);
   }
 
-  function jumpReviewStep(index) {
+  function animateReviewStep(direction) {
     if (!state.currentPlay) return;
     stopPlayback();
-    state.review.index = Math.max(0, Math.min(state.currentPlay.steps.length - 1, index));
-    state.review.progress = 0;
-    state.review.playing = false;
+    state.review.pauseElapsed = 0;
+    if (direction < 0 && state.review.index === 0 && state.review.progress <= 0) return;
+    if (direction > 0 && state.review.index === state.currentPlay.steps.length - 1 && state.review.progress >= 1) return;
+    const targetIndex = Math.max(0, state.review.index - 1);
+    state.review.manual = { direction, targetIndex };
+    state.review.playing = true;
+    state.review.lastTs = performance.now();
+    state.review.raf = requestAnimationFrame(playbackTick);
     renderReview();
   }
 
@@ -1609,6 +1618,7 @@
     stopPlayback();
     state.review.index = 0;
     state.review.progress = 0;
+    state.review.pauseElapsed = 0;
     state.review.playing = false;
     renderReview();
   }
@@ -1646,6 +1656,7 @@
 
   function stopPlayback() {
     state.review.playing = false;
+    state.review.manual = null;
     if (state.review.raf !== null) cancelAnimationFrame(state.review.raf);
     state.review.raf = null;
   }
@@ -1683,7 +1694,7 @@
       const previous = [...step.actions].reverse().find((action) =>
         action.actorId === actorId && ['move', 'dribble', 'screen'].includes(action.type)
       );
-      if (previous) return { ...previous.to };
+      if (previous) return playback.actionEnd(previous);
     }
     return getActorPosition(step, actorId);
   }
@@ -1718,7 +1729,7 @@
     if (!entities.ball) return null;
     if (entities.ball.ownerId) {
       const owner = entities.players.find((player) => player.id === entities.ball.ownerId);
-      if (owner) return { ...playerBallPosition(owner), ownerId: owner.id };
+      if (owner) return { ...entities.ball, ...playerBallPosition(owner), ownerId: owner.id };
     }
     return entities.ball;
   }
@@ -1826,6 +1837,9 @@
         if (!Array.isArray(step.entities.players)) throw new Error(`Play ${playIndex + 1}, step ${stepIndex + 1} is missing players`);
         if (!Array.isArray(step.actions)) throw new Error(`Play ${playIndex + 1}, step ${stepIndex + 1} is missing actions`);
         if (step.showPreviousStep !== undefined && typeof step.showPreviousStep !== 'boolean') throw new Error('Step shadow setting must be true or false');
+        step.actions.forEach((action) => {
+          if (action.delayed !== undefined && typeof action.delayed !== 'boolean') throw new Error('Action delay setting must be true or false');
+        });
       });
     });
   }

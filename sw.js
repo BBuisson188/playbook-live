@@ -1,4 +1,4 @@
-const CACHE_NAME = 'playbook-live-v9';
+const CACHE_NAME = 'playbook-live-v11';
 const ASSETS = [
   './',
   './index.html',
@@ -7,6 +7,8 @@ const ASSETS = [
   './styles.css',
   './app.js',
   './playbook-model.js',
+  './playback-model.js',
+  './tooltips.js',
   './manifest.json',
   './assets/icon.svg',
   './assets/icon-192.png',
