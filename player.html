@@ -41,6 +41,10 @@
               <span data-player-status-message>Updating playbook...</span>
               <button id="retryPlayerLoadBtn" class="pill-button primary hidden" type="button">Retry</button>
             </div>
+            <div class="library-filters">
+              <input id="librarySearch" type="search" placeholder="Search plays" aria-label="Search plays" />
+              <select id="libraryCategoryFilter" aria-label="Filter by category"></select>
+            </div>
             <div id="playList" class="play-list"></div>
           </div>
         </section>
@@ -90,6 +94,7 @@
       </form>
     </dialog>
 
+    <script src="playbook-model.js"></script>
     <script src="app.js"></script>
   </body>
 </html>

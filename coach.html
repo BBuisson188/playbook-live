@@ -52,7 +52,14 @@
                 <label for="playName">Play name</label>
                 <input id="playName" class="play-name-input" type="text" spellcheck="false" />
               </div>
-              <div class="step-chip" id="stepChip">Step 1 of 1</div>
+              <div class="editor-metadata">
+                <select id="editorCategory" aria-label="Play category"></select>
+                <select id="editorStepSelect" aria-label="Jump to step"></select>
+                <label class="step-shadow-toggle" title="Show the previous step's paths faintly behind this step">
+                  <input id="previousStepShadow" type="checkbox" role="switch" />Previous step shadow
+                </label>
+                <div class="step-chip" id="stepChip">Step 1 of 1</div>
+              </div>
             </div>
 
             <div class="court-wrap">
@@ -70,16 +77,18 @@
                   </button>
                 </div>
               </div>
-              <div id="toast" class="toast hidden"></div>
             </div>
 
             <div class="editor-footer">
               <div class="step-controls" aria-label="Step controls">
-                <button id="prevStepBtn" class="pill-button secondary">&#8249; Step</button>
-                <button id="nextStepBtn" class="pill-button primary">Next Step</button>
+                <button id="prevStepBtn" class="icon-button" title="Previous step" aria-label="Previous step">&#8249;</button>
+                <button id="nextStepBtn" class="icon-button" title="Next step" aria-label="Next step">&#8250;</button>
+                <button id="addStepBtn" class="pill-button secondary">Add Step</button>
                 <button id="addBlankStepBtn" class="pill-button secondary">Blank</button>
               </div>
               <div class="quick-actions">
+                <button id="deleteStepBtn" class="pill-button danger">Delete Step</button>
+                <button id="lastStepBtn" class="pill-button secondary">Last Step</button>
                 <button id="savePlayBtn" class="pill-button success">Save</button>
               </div>
             </div>
@@ -105,15 +114,22 @@
                 <div class="eyebrow">Saved locally on this device</div>
                 <h2>Playbook</h2>
               </div>
-              <button id="newPlayBtn" class="pill-button primary">New Play</button>
+              <div class="header-actions">
+                <button id="manageCategoriesBtn" class="pill-button secondary">Categories</button>
+                <button id="newPlayBtn" class="pill-button primary">New Play</button>
+              </div>
             </div>
-            <div class="library-actions card-panel">
+            <details class="library-sync-menu">
+              <summary>Publishing</summary>
+              <div class="library-actions card-panel">
               <button id="copyPlayerLinkBtn" class="pill-button primary">Copy Player Link</button>
               <button id="saveGitHubBtn" class="pill-button success">Save to GitHub</button>
               <button id="loadGitHubBtn" class="pill-button secondary">Load from GitHub</button>
-              <button id="exportPlaybookBtn" class="pill-button secondary">Export Playbook</button>
-              <button id="importPlaybookBtn" class="pill-button secondary">Import Playbook</button>
-              <input id="importPlaybookInput" class="hidden" type="file" accept="application/json,.json" />
+              </div>
+            </details>
+            <div class="library-filters">
+              <input id="librarySearch" type="search" placeholder="Search plays" aria-label="Search plays" />
+              <select id="libraryCategoryFilter" aria-label="Filter by category"></select>
             </div>
             <div id="playList" class="play-list"></div>
           </div>
@@ -144,6 +160,23 @@
         <button class="nav-button" data-screen="review"><span>&#9654;</span>Review</button>
       </nav>
     </div>
+
+    <div id="toast" class="toast app-toast hidden" role="status" aria-live="polite"></div>
+
+    <dialog id="categoriesDialog" class="modal-card">
+      <div class="category-dialog-content">
+        <div class="modal-header">
+          <h2>Categories</h2>
+          <button id="closeCategoriesBtn" type="button" class="icon-button" title="Close categories" aria-label="Close categories">&#215;</button>
+        </div>
+        <form id="addCategoryForm" class="category-add-form">
+          <input id="newCategoryName" aria-label="New category name" placeholder="New category" maxlength="80" required />
+          <button type="submit" class="pill-button primary">Add Category</button>
+        </form>
+        <p id="categoryMessage" role="status" aria-live="polite"></p>
+        <div id="categoryList" class="category-list"></div>
+      </div>
+    </dialog>
 
     <dialog id="settingsDialog" class="modal-card">
       <form method="dialog">
@@ -187,6 +220,7 @@
       </form>
     </dialog>
 
+    <script src="playbook-model.js"></script>
     <script src="app.js"></script>
   </body>
 </html>

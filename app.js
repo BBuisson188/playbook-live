@@ -14,8 +14,10 @@
   const PLAYER_JSON_URL = 'data/playbook-live.json';
   const PLAYER_CACHE_KEY = 'playbook-live:player-json-cache';
   const PLAYER_LINK = 'https://bbuisson188.github.io/playbook-live/player.html';
+  const model = PlaybookModel;
   const STORAGE = {
     plays: 'playbook-live:plays:v1',
+    categories: 'playbook-live:categories:v1',
     current: 'playbook-live:current-play-id:v1',
     github: 'playbook-live:github-settings:v1'
   };
@@ -38,13 +40,17 @@
     tool: 'select',
     screen: APP_MODE === 'player' ? 'playbook' : 'create',
     plays: [],
+    categories: [],
+    libraryQuery: '',
+    libraryFilter: 'all',
+    collapsedCategories: new Set(),
+    playerLoadState: 'loading',
     currentPlay: null,
     currentStepIndex: 0,
     selected: null,
     drag: null,
     draftAction: null,
     lastHandleTap: null,
-    playReorder: null,
     undoStack: [],
     redoStack: [],
     review: {
@@ -62,6 +68,7 @@
   document.addEventListener('DOMContentLoaded', init);
 
   function init() {
+    attachInteractionGuards();
     if (APP_MODE === 'player') {
       initPlayer();
       return;
@@ -122,6 +129,22 @@
     registerServiceWorker();
   }
 
+  function attachInteractionGuards() {
+    const editable = (target) => {
+      const element = target instanceof Element ? target : target?.parentElement;
+      return element?.closest('input, textarea, [contenteditable="true"]');
+    };
+    document.addEventListener('selectstart', (event) => {
+      if (!editable(event.target)) event.preventDefault();
+    });
+    document.addEventListener('contextmenu', (event) => {
+      if (!editable(event.target)) event.preventDefault();
+    });
+    document.addEventListener('dblclick', (event) => {
+      if (!editable(event.target)) event.preventDefault();
+    });
+  }
+
   function cacheElements() {
     Object.assign(els, {
       courtSvg: document.getElementById('courtSvg'),
@@ -135,15 +158,27 @@
       settingsBtn: document.getElementById('settingsBtn'),
       prevStepBtn: document.getElementById('prevStepBtn'),
       nextStepBtn: document.getElementById('nextStepBtn'),
+      addStepBtn: document.getElementById('addStepBtn'),
+      deleteStepBtn: document.getElementById('deleteStepBtn'),
+      lastStepBtn: document.getElementById('lastStepBtn'),
+      editorStepSelect: document.getElementById('editorStepSelect'),
+      previousStepShadow: document.getElementById('previousStepShadow'),
+      editorCategory: document.getElementById('editorCategory'),
       addBlankStepBtn: document.getElementById('addBlankStepBtn'),
       savePlayBtn: document.getElementById('savePlayBtn'),
       newPlayBtn: document.getElementById('newPlayBtn'),
       saveGitHubBtn: document.getElementById('saveGitHubBtn'),
       loadGitHubBtn: document.getElementById('loadGitHubBtn'),
-      exportPlaybookBtn: document.getElementById('exportPlaybookBtn'),
-      importPlaybookBtn: document.getElementById('importPlaybookBtn'),
-      importPlaybookInput: document.getElementById('importPlaybookInput'),
       playList: document.getElementById('playList'),
+      librarySearch: document.getElementById('librarySearch'),
+      libraryCategoryFilter: document.getElementById('libraryCategoryFilter'),
+      manageCategoriesBtn: document.getElementById('manageCategoriesBtn'),
+      categoriesDialog: document.getElementById('categoriesDialog'),
+      closeCategoriesBtn: document.getElementById('closeCategoriesBtn'),
+      addCategoryForm: document.getElementById('addCategoryForm'),
+      newCategoryName: document.getElementById('newCategoryName'),
+      categoryMessage: document.getElementById('categoryMessage'),
+      categoryList: document.getElementById('categoryList'),
       settingsDialog: document.getElementById('settingsDialog'),
       ghOwner: document.getElementById('ghOwner'),
       ghRepo: document.getElementById('ghRepo'),
@@ -180,6 +215,7 @@
   }
 
   function attachEvents() {
+    attachLibraryEvents();
     document.querySelectorAll('.tool-button').forEach((button) => {
       button.addEventListener('click', () => setTool(button.dataset.tool));
     });
@@ -204,7 +240,37 @@
     els.settingsBtn.addEventListener('click', () => els.settingsDialog.showModal());
 
     els.prevStepBtn.addEventListener('click', goPreviousStep);
-    els.nextStepBtn.addEventListener('click', goNextOrCreateStep);
+    els.nextStepBtn.addEventListener('click', goNextStep);
+    els.addStepBtn.addEventListener('click', addStepAfterCurrent);
+    els.deleteStepBtn.addEventListener('click', deleteCurrentStep);
+    els.lastStepBtn.addEventListener('click', makeCurrentStepLast);
+    els.editorStepSelect.addEventListener('change', () => {
+      stopPlayback();
+      state.currentStepIndex = Number(els.editorStepSelect.value);
+      state.selected = null;
+      state.draftAction = null;
+      renderCreate();
+    });
+    els.previousStepShadow.addEventListener('change', () => {
+      if (state.currentStepIndex === 0) return;
+      checkpoint();
+      currentStep().showPreviousStep = els.previousStepShadow.checked;
+      state.currentPlay.updatedAt = new Date().toISOString();
+      renderCreate();
+      renderReview();
+    });
+    els.editorCategory.addEventListener('change', () => {
+      checkpoint();
+      state.currentPlay.categoryId = els.editorCategory.value || null;
+      state.currentPlay.updatedAt = new Date().toISOString();
+      renderCreate();
+    });
+    els.manageCategoriesBtn.addEventListener('click', () => {
+      renderCategoryManager();
+      els.categoriesDialog.showModal();
+    });
+    els.closeCategoriesBtn.addEventListener('click', () => els.categoriesDialog.close());
+    els.addCategoryForm.addEventListener('submit', addCategory);
     els.addBlankStepBtn.addEventListener('click', addBlankStepAfterCurrent);
     els.savePlayBtn.addEventListener('click', () => {
       saveCurrentPlayToLibrary();
@@ -212,7 +278,10 @@
     });
 
     els.newPlayBtn.addEventListener('click', () => {
-      checkpoint();
+      saveCurrentDraft();
+      stopPlayback();
+      state.undoStack = [];
+      state.redoStack = [];
       state.currentPlay = createNewPlay();
       state.currentStepIndex = 0;
       state.selected = null;
@@ -226,9 +295,6 @@
     });
     els.saveGitHubBtn.addEventListener('click', savePlaybookToGitHub);
     els.loadGitHubBtn.addEventListener('click', loadPlaybookFromGitHub);
-    els.exportPlaybookBtn.addEventListener('click', exportPlaybookJson);
-    els.importPlaybookBtn?.addEventListener('click', () => els.importPlaybookInput?.click());
-    els.importPlaybookInput?.addEventListener('change', importJsonFile);
     els.copyPlayerLinkBtn?.addEventListener('click', copyPlayerLink);
 
     els.saveSettingsBtn.addEventListener('click', saveGitHubSettingsFromForm);
@@ -263,6 +329,7 @@
   }
 
   function attachPlayerEvents() {
+    attachLibraryEvents();
     document.querySelectorAll('.nav-button').forEach((button) => {
       button.addEventListener('click', () => setScreen(button.dataset.screen));
     });
@@ -335,6 +402,7 @@
       name: 'New Play',
       description: '',
       tags: [],
+      categoryId: state.libraryFilter !== 'all' ? state.libraryFilter || null : null,
       courtType: null,
       createdAt: now,
       updatedAt: now,
@@ -346,12 +414,18 @@
     return {
       id: uid('step'),
       notes: '',
+      showPreviousStep: false,
       entities: entities ? clone(entities) : { players: [], ball: null },
       actions: []
     };
   }
 
   function loadLocalPlays() {
+    try {
+      state.categories = model.readCategories({ categories: JSON.parse(localStorage.getItem(STORAGE.categories) || '[]') });
+    } catch {
+      state.categories = [];
+    }
     try {
       state.plays = JSON.parse(localStorage.getItem(STORAGE.plays) || '[]');
       if (!Array.isArray(state.plays)) state.plays = [];
@@ -363,6 +437,7 @@
 
   function persistLocalPlays() {
     localStorage.setItem(STORAGE.plays, JSON.stringify(state.plays));
+    localStorage.setItem(STORAGE.categories, JSON.stringify(state.categories));
   }
 
   function saveCurrentPlayId() {
@@ -388,11 +463,22 @@
     renderLibrary();
   }
 
+  function saveCurrentDraft() {
+    const play = state.currentPlay;
+    if (!play) return;
+    const saved = state.plays.some((item) => item.id === play.id);
+    const edited = play.courtType || play.name !== 'New Play' || play.steps.length > 1 ||
+      play.steps.some((step) => step.entities.players.length || step.entities.ball || step.actions.length);
+    if (saved || edited) saveCurrentPlayToLibrary();
+  }
+
   function normalizePlay(play) {
     play.schemaVersion = 1;
+    if (typeof play.categoryId !== 'string') play.categoryId = null;
     if (!Object.prototype.hasOwnProperty.call(play, 'courtType')) play.courtType = 'full';
     if (!Array.isArray(play.steps) || play.steps.length === 0) play.steps = [createStep()];
     play.steps.forEach((step) => {
+      step.showPreviousStep = step.showPreviousStep === true;
       if (!step.id) step.id = uid('step');
       if (!step.entities) step.entities = { players: [], ball: null };
       if (!Array.isArray(step.entities.players)) step.entities.players = [];
@@ -412,10 +498,13 @@
 
   function setScreen(screen) {
     if (APP_MODE === 'player' && !['playbook', 'review'].includes(screen)) return;
+    if (state.screen !== screen) stopPlayback();
+    if (APP_MODE === 'coach' && screen === 'playbook') saveCurrentDraft();
     state.screen = screen;
     document.querySelectorAll('.nav-button').forEach((button) => button.classList.toggle('active', button.dataset.screen === screen));
     document.querySelectorAll('.screen').forEach((panel) => panel.classList.remove('active'));
     document.getElementById(`${screen}Screen`)?.classList.add('active');
+    if (screen === 'create') renderCreate();
     if (screen === 'playbook') renderLibrary();
     if (screen === 'review') {
       if (state.currentPlay) state.review.index = Math.min(state.review.index, state.currentPlay.steps.length - 1);
@@ -772,16 +861,18 @@
     renderCreate();
   }
 
-  function goNextOrCreateStep() {
-    if (state.currentStepIndex < state.currentPlay.steps.length - 1) {
-      state.currentStepIndex += 1;
-      state.selected = null;
-      renderCreate();
-      return;
-    }
+  function goNextStep() {
+    if (state.currentStepIndex >= state.currentPlay.steps.length - 1) return;
+    state.currentStepIndex += 1;
+    state.selected = null;
+    state.draftAction = null;
+    renderCreate();
+  }
+
+  function addStepAfterCurrent() {
     checkpoint();
     const nextEntities = deriveEndEntities(currentStep());
-    state.currentPlay.steps.push(createStep(nextEntities));
+    state.currentPlay.steps.splice(state.currentStepIndex + 1, 0, createStep(nextEntities));
     state.currentStepIndex += 1;
     state.selected = null;
     state.currentPlay.updatedAt = new Date().toISOString();
@@ -802,13 +893,30 @@
       showToast('A play needs at least one step');
       return;
     }
+    if (!confirm(`Delete step ${state.currentStepIndex + 1} of ${state.currentPlay.steps.length}?`)) return;
+    stopPlayback();
     checkpoint();
-    state.currentPlay.steps.splice(state.currentStepIndex, 1);
+    model.deleteStep(state.currentPlay, state.currentStepIndex);
     state.currentStepIndex = Math.min(state.currentStepIndex, state.currentPlay.steps.length - 1);
     state.selected = null;
+    state.draftAction = null;
     state.currentPlay.updatedAt = new Date().toISOString();
     recomputeFollowingStepsFrom(Math.max(0, state.currentStepIndex - 1));
-    renderCreate();
+    renderAll();
+  }
+
+  function makeCurrentStepLast() {
+    const count = state.currentPlay.steps.length - state.currentStepIndex - 1;
+    if (count <= 0) return;
+    if (!confirm(`Make step ${state.currentStepIndex + 1} the last step? This removes ${count} later step${count === 1 ? '' : 's'}.`)) return;
+    stopPlayback();
+    checkpoint();
+    model.trimSteps(state.currentPlay, state.currentStepIndex);
+    state.selected = null;
+    state.draftAction = null;
+    state.currentPlay.updatedAt = new Date().toISOString();
+    renderAll();
+    showToast(`Removed ${count} later step${count === 1 ? '' : 's'}`);
   }
 
   function deriveEndEntities(step) {
@@ -940,7 +1048,16 @@
     els.playName.value = state.currentPlay.name || 'Untitled Play';
     els.stepChip.textContent = `Step ${state.currentStepIndex + 1} of ${state.currentPlay.steps.length}`;
     els.prevStepBtn.disabled = state.currentStepIndex === 0;
-    els.nextStepBtn.textContent = state.currentStepIndex === state.currentPlay.steps.length - 1 ? 'Next Step' : 'Next Step \u203a';
+    els.nextStepBtn.disabled = state.currentStepIndex === state.currentPlay.steps.length - 1;
+    els.deleteStepBtn.disabled = state.currentPlay.steps.length <= 1;
+    els.lastStepBtn.disabled = state.currentStepIndex === state.currentPlay.steps.length - 1;
+    els.editorStepSelect.innerHTML = state.currentPlay.steps.map((step, index) =>
+      `<option value="${index}">Step ${index + 1} of ${state.currentPlay.steps.length}</option>`).join('');
+    els.editorStepSelect.value = String(state.currentStepIndex);
+    els.previousStepShadow.disabled = state.currentStepIndex === 0;
+    els.previousStepShadow.checked = state.currentStepIndex > 0 && currentStep().showPreviousStep;
+    els.editorCategory.innerHTML = categoryOptions();
+    els.editorCategory.value = model.categoryId(state.currentPlay, state.categories) || '';
     els.undoBtn.disabled = state.undoStack.length === 0;
     els.redoBtn.disabled = state.redoStack.length === 0;
     els.courtChooser.classList.toggle('hidden', Boolean(state.currentPlay.courtType));
@@ -948,6 +1065,7 @@
       courtType: state.currentPlay.courtType,
       selected: state.selected,
       draftAction: state.draftAction,
+      previousStep: model.previousStepForShadow(state.currentPlay, state.currentStepIndex),
       interactive: true,
       showHandles: true
     });
@@ -961,6 +1079,12 @@
     svg.style.setProperty('--court-aspect', `${court.width} / ${court.height}`);
     fitCourtSvg(svg, court);
     drawCourtBase(svg, options.courtType);
+
+    if (options.previousStep) {
+      const shadowLayer = el('g', { class: 'previous-step-layer', 'aria-hidden': 'true' });
+      options.previousStep.actions.forEach((action) => drawAction(shadowLayer, action, false, false));
+      svg.appendChild(shadowLayer);
+    }
 
     const actionLayer = el('g', { class: 'actions-layer' });
     step.actions.forEach((action) => drawAction(actionLayer, action, selected?.kind === 'action' && selected.id === action.id, options.interactive));
@@ -1010,8 +1134,9 @@
   function fitCourtSvg(svg, court) {
     const viewport = svg.parentElement;
     if (!viewport) return;
-    const availableWidth = viewport.clientWidth;
-    const availableHeight = viewport.clientHeight;
+    const style = getComputedStyle(viewport);
+    const availableWidth = viewport.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+    const availableHeight = viewport.clientHeight - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom);
     if (!availableWidth || !availableHeight) return;
     const courtRatio = court.width / court.height;
     const viewportRatio = availableWidth / availableHeight;
@@ -1116,19 +1241,160 @@
     parent.appendChild(group);
   }
 
+  function categoryOptions() {
+    return '<option value="">Uncategorized</option>' + state.categories.map((category) =>
+      `<option value="${escapeHtml(category.id)}">${escapeHtml(category.name)}${category.hidden ? ' (Hidden)' : ''}</option>`).join('');
+  }
+
+  function renderCategoryControls() {
+    if (els.editorCategory) {
+      els.editorCategory.innerHTML = categoryOptions();
+      els.editorCategory.value = state.currentPlay ? model.categoryId(state.currentPlay, state.categories) || '' : '';
+    }
+    if (state.libraryFilter !== 'all' && state.libraryFilter !== '' && !state.categories.some((category) => category.id === state.libraryFilter)) {
+      state.libraryFilter = 'all';
+    }
+    els.libraryCategoryFilter.innerHTML = '<option value="all">All categories</option>' + categoryOptions();
+    els.libraryCategoryFilter.value = state.libraryFilter;
+  }
+
+  function attachLibraryEvents() {
+    els.librarySearch.addEventListener('input', () => {
+      state.libraryQuery = els.librarySearch.value;
+      renderLibrary();
+    });
+    els.libraryCategoryFilter.addEventListener('change', () => {
+      state.libraryFilter = els.libraryCategoryFilter.value;
+      renderLibrary();
+    });
+  }
+
+  function addCategory(event) {
+    event.preventDefault();
+    const name = els.newCategoryName.value.trim();
+    if (!name || state.categories.some((category) => category.name.toLowerCase() === name.toLowerCase())) {
+      els.categoryMessage.textContent = 'Enter a unique category name.';
+      return;
+    }
+    state.categories.push({ id: uid('category'), name, hidden: false });
+    persistLocalPlays();
+    els.newCategoryName.value = '';
+    els.categoryMessage.textContent = '';
+    renderCategoryManager();
+    renderLibrary();
+    els.newCategoryName.focus();
+  }
+
+  function renderCategoryManager() {
+    els.categoryList.innerHTML = state.categories.length ? state.categories.map((category) => `
+      <div class="category-row" data-category-id="${escapeHtml(category.id)}">
+        <input data-category-name value="${escapeHtml(category.name)}" aria-label="Category name" maxlength="80" />
+        <label class="category-visibility"><input type="checkbox" role="switch" data-category-visible ${category.hidden ? '' : 'checked'} />Visible to players</label>
+        <button type="button" class="icon-button category-remove" data-category-remove title="Remove category" aria-label="Remove ${escapeHtml(category.name)}">&#215;</button>
+      </div>`).join('') : '<p class="muted">No categories yet.</p>';
+    els.categoryList.querySelectorAll('[data-category-name]').forEach((input) => {
+      input.addEventListener('change', () => {
+        const category = state.categories.find((item) => item.id === input.closest('[data-category-id]').dataset.categoryId);
+        const name = input.value.trim();
+        if (!name || state.categories.some((item) => item.id !== category.id && item.name.toLowerCase() === name.toLowerCase())) {
+          input.value = category.name;
+          els.categoryMessage.textContent = 'Enter a unique category name.';
+          return;
+        }
+        category.name = name;
+        els.categoryMessage.textContent = '';
+        persistLocalPlays();
+        renderLibrary();
+      });
+    });
+    els.categoryList.querySelectorAll('[data-category-visible]').forEach((input) => {
+      input.addEventListener('change', () => {
+        const category = state.categories.find((item) => item.id === input.closest('[data-category-id]').dataset.categoryId);
+        category.hidden = !input.checked;
+        persistLocalPlays();
+        renderLibrary();
+        els.categoryMessage.textContent = 'Saved locally. Save to GitHub to update player view.';
+      });
+    });
+    els.categoryList.querySelectorAll('[data-category-remove]').forEach((button) => {
+      button.addEventListener('click', () => {
+        const category = state.categories.find((item) => item.id === button.closest('[data-category-id]').dataset.categoryId);
+        const count = state.plays.filter((play) => play.categoryId === category.id).length;
+        if (!confirm(`Remove "${category.name}"? ${count} play${count === 1 ? '' : 's'} will move to Uncategorized and be visible to players after publishing.`)) return;
+        state.categories = state.categories.filter((item) => item.id !== category.id);
+        state.plays.forEach((play) => { if (play.categoryId === category.id) play.categoryId = null; });
+        if (state.currentPlay?.categoryId === category.id) state.currentPlay.categoryId = null;
+        persistLocalPlays();
+        renderCategoryManager();
+        renderLibrary();
+      });
+    });
+  }
+
   function renderLibrary() {
     if (!els.playList) return;
+    renderCategoryControls();
     if (state.plays.length === 0) {
+      if (APP_MODE === 'player' && ['loading', 'error'].includes(state.playerLoadState)) {
+        els.playList.innerHTML = '';
+        return;
+      }
       els.playList.innerHTML = APP_MODE === 'player'
         ? `<div class="empty-state"><strong>No published plays yet</strong>The player playbook loaded, but it does not contain any plays.</div>`
         : `<div class="empty-state"><strong>No saved plays yet</strong>Create a play, then tap Save. Your local playbook will appear here.</div>`;
       return;
     }
 
-    els.playList.innerHTML = state.plays.map((play) => {
+    const groups = model.groups(state.plays, state.categories, state.libraryQuery, state.libraryFilter);
+    const scrollTop = els.playList.scrollTop;
+    const focused = document.activeElement;
+    const focusedId = focused?.closest('[data-play-id]')?.dataset.playId;
+    const focusedDirection = focused?.dataset.orderDirection;
+    els.playList.innerHTML = groups.length ? groups.map((group) => `
+      <details class="category-group" data-category-group="${escapeHtml(group.id || '')}" ${state.collapsedCategories.has(group.id || '') ? '' : 'open'}>
+        <summary><span>${escapeHtml(group.name)}</span><span class="category-count">${group.plays.length}${group.hidden ? ' &bull; Hidden from players' : ''}</span></summary>
+        <div class="category-plays">${group.plays.map((play, index) => renderPlayCard(play, group.plays, index)).join('')}</div>
+      </details>`).join('') : '<div class="empty-state"><strong>No matching plays</strong></div>';
+    els.playList.scrollTop = scrollTop;
+
+    els.playList.querySelectorAll('[data-category-group]').forEach((group) => {
+      group.addEventListener('toggle', () => {
+        if (group.open) state.collapsedCategories.delete(group.dataset.categoryGroup);
+        else state.collapsedCategories.add(group.dataset.categoryGroup);
+      });
+    });
+    els.playList.querySelectorAll('[data-library-action]').forEach((button) => {
+      button.addEventListener('click', () => handleLibraryAction(button.closest('[data-play-id]').dataset.playId, button.dataset.libraryAction));
+    });
+    if (APP_MODE === 'player') return;
+    els.playList.querySelectorAll('[data-play-category]').forEach((select) => {
+      const play = state.plays.find((item) => item.id === select.dataset.playCategory);
+      select.value = model.categoryId(play, state.categories) || '';
+      select.addEventListener('change', () => {
+        play.categoryId = select.value || null;
+        play.updatedAt = new Date().toISOString();
+        if (state.currentPlay?.id === play.id) state.currentPlay.categoryId = play.categoryId;
+        persistLocalPlays();
+        renderCategoryControls();
+        renderLibrary();
+        showToast('Category saved on this device');
+      });
+    });
+    els.playList.querySelectorAll('[data-order-target]').forEach((button) => {
+      button.addEventListener('click', () => {
+        state.plays = model.movePlay(state.plays, state.categories, button.closest('[data-play-id]').dataset.playId, button.dataset.orderTarget);
+        persistLocalPlays();
+        renderLibrary();
+      });
+      if (button.closest('[data-play-id]').dataset.playId === focusedId && button.dataset.orderDirection === focusedDirection) {
+        button.focus({ preventScroll: true });
+      }
+    });
+  }
+
+  function renderPlayCard(play, siblings, index) {
       const stepCount = play.steps?.length || 0;
       const updated = play.updatedAt ? new Date(play.updatedAt).toLocaleString() : 'Not saved yet';
-      const isDragging = state.playReorder?.playId === play.id;
       const isSelected = state.currentPlay?.id === play.id;
       const playerActions = `
             <button class="pill-button primary" data-library-action="review">Review</button>`;
@@ -1138,7 +1404,7 @@
             <button class="pill-button secondary" data-library-action="duplicate">Duplicate</button>
             <button class="pill-button danger" data-library-action="delete">Delete</button>`;
       return `
-        <article class="play-card ${isDragging ? 'dragging' : ''} ${isSelected ? 'selected' : ''}" data-play-id="${play.id}">
+        <article class="play-card ${isSelected ? 'selected' : ''}" data-play-id="${escapeHtml(play.id)}">
           <div class="play-card-top">
             <div>
               <h3>${escapeHtml(play.name || 'Untitled Play')}</h3>
@@ -1146,73 +1412,22 @@
             </div>
             <div class="play-card-side">
               <div class="step-chip">${stepCount}</div>
-              ${APP_MODE === 'player' ? '' : `<button class="reorder-handle" data-reorder-play-id="${play.id}" type="button" title="Drag to reorder" aria-label="Drag to reorder play">&#8645;</button>`}
+              ${APP_MODE === 'player' ? '' : `<div class="play-order-controls">
+                <button type="button" class="icon-button" data-order-direction="up" data-order-target="${escapeHtml(siblings[index - 1]?.id || '')}" title="Move up" aria-label="Move ${escapeHtml(play.name || 'play')} up" ${index === 0 ? 'disabled' : ''}>&#8593;</button>
+                <button type="button" class="icon-button" data-order-direction="down" data-order-target="${escapeHtml(siblings[index + 1]?.id || '')}" title="Move down" aria-label="Move ${escapeHtml(play.name || 'play')} down" ${index === siblings.length - 1 ? 'disabled' : ''}>&#8595;</button>
+              </div>`}
             </div>
           </div>
           <div class="play-card-actions">
             ${APP_MODE === 'player' ? playerActions : coachActions}
           </div>
+          ${APP_MODE === 'player' ? '' : `<select data-play-category="${escapeHtml(play.id)}" aria-label="Category for ${escapeHtml(play.name || 'play')}">${categoryOptions()}</select>`}
         </article>`;
-    }).join('');
-
-    if (APP_MODE === 'player') {
-      els.playList.querySelectorAll('[data-play-id]').forEach((card) => {
-        card.addEventListener('click', (event) => {
-          if (event.target.closest('button')) return;
-          handleLibraryAction(card.dataset.playId, 'review');
-        });
-      });
-    }
-
-    els.playList.querySelectorAll('[data-library-action]').forEach((button) => {
-      button.addEventListener('click', () => handleLibraryAction(button.closest('[data-play-id]').dataset.playId, button.dataset.libraryAction));
-    });
-    if (APP_MODE === 'player') return;
-
-    els.playList.querySelectorAll('[data-reorder-play-id]').forEach((button) => {
-      button.addEventListener('pointerdown', beginPlayReorder);
-    });
-  }
-
-  function beginPlayReorder(event) {
-    event.preventDefault();
-    const playId = event.currentTarget.dataset.reorderPlayId;
-    const startIndex = state.plays.findIndex((play) => play.id === playId);
-    if (startIndex < 0) return;
-    state.playReorder = { playId, pointerId: event.pointerId };
-    event.currentTarget.setPointerCapture?.(event.pointerId);
-    window.addEventListener('pointermove', updatePlayReorder);
-    window.addEventListener('pointerup', finishPlayReorder, { once: true });
-    window.addEventListener('pointercancel', finishPlayReorder, { once: true });
-    renderLibrary();
-  }
-
-  function updatePlayReorder(event) {
-    if (!state.playReorder) return;
-    const fromIndex = state.plays.findIndex((play) => play.id === state.playReorder.playId);
-    if (fromIndex < 0) return;
-    const cards = [...els.playList.querySelectorAll('[data-play-id]')];
-    const targetIndex = cards.findIndex((card) => {
-      const rect = card.getBoundingClientRect();
-      return event.clientY < rect.top + rect.height / 2;
-    });
-    let toIndex = targetIndex === -1 ? state.plays.length : targetIndex;
-    if (fromIndex < toIndex) toIndex -= 1;
-    if (toIndex === fromIndex) return;
-    const [play] = state.plays.splice(fromIndex, 1);
-    state.plays.splice(toIndex, 0, play);
-    renderLibrary();
-  }
-
-  function finishPlayReorder() {
-    if (!state.playReorder) return;
-    state.playReorder = null;
-    persistLocalPlays();
-    renderLibrary();
-    window.removeEventListener('pointermove', updatePlayReorder);
   }
 
   function handleLibraryAction(playId, action) {
+    stopPlayback();
+    if (APP_MODE === 'coach' && ['open', 'review'].includes(action)) saveCurrentDraft();
     const play = state.plays.find((item) => item.id === playId);
     if (!play) return;
     if (APP_MODE === 'player') {
@@ -1226,6 +1441,8 @@
       return;
     }
     if (action === 'open') {
+      state.undoStack = [];
+      state.redoStack = [];
       state.currentPlay = clone(play);
       state.currentStepIndex = 0;
       state.selected = null;
@@ -1234,6 +1451,8 @@
       renderAll();
     }
     if (action === 'review') {
+      state.undoStack = [];
+      state.redoStack = [];
       state.currentPlay = clone(play);
       state.currentStepIndex = 0;
       state.review.index = 0;
@@ -1282,6 +1501,7 @@
     const frame = frameStep(step, state.review.progress);
     renderCourt(els.reviewSvg, frame, {
       courtType: state.currentPlay.courtType || 'full',
+      previousStep: model.previousStepForShadow(state.currentPlay, state.review.index),
       interactive: false,
       showHandles: false
     });
@@ -1342,6 +1562,11 @@
 
   function togglePlayback() {
     if (!state.currentPlay) return;
+    if (state.review.playing) {
+      stopPlayback();
+      renderReview();
+      return;
+    }
     if (!state.review.playing && state.review.progress >= 1) {
       if (state.review.index < state.currentPlay.steps.length - 1) {
         state.review.index += 1;
@@ -1372,6 +1597,7 @@
 
   function jumpReviewStep(index) {
     if (!state.currentPlay) return;
+    stopPlayback();
     state.review.index = Math.max(0, Math.min(state.currentPlay.steps.length - 1, index));
     state.review.progress = 0;
     state.review.playing = false;
@@ -1380,6 +1606,7 @@
 
   function restartPlayback() {
     if (!state.currentPlay) return;
+    stopPlayback();
     state.review.index = 0;
     state.review.progress = 0;
     state.review.playing = false;
@@ -1417,8 +1644,15 @@
     state.redoStack = [];
   }
 
+  function stopPlayback() {
+    state.review.playing = false;
+    if (state.review.raf !== null) cancelAnimationFrame(state.review.raf);
+    state.review.raf = null;
+  }
+
   function undo() {
     if (state.undoStack.length === 0) return;
+    stopPlayback();
     state.redoStack.push(clone({ play: state.currentPlay, stepIndex: state.currentStepIndex, selected: state.selected }));
     const snapshot = state.undoStack.pop();
     state.currentPlay = snapshot.play;
@@ -1429,6 +1663,7 @@
 
   function redo() {
     if (state.redoStack.length === 0) return;
+    stopPlayback();
     state.undoStack.push(clone({ play: state.currentPlay, stepIndex: state.currentStepIndex, selected: state.selected }));
     const snapshot = state.redoStack.pop();
     state.currentPlay = snapshot.play;
@@ -1556,66 +1791,18 @@
     };
   }
 
-  function exportJson(data, filename) {
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(url);
-  }
-
-  function exportPlaybookJson() {
-    saveCurrentPlayToLibrary();
-    exportJson(createPlaybookSnapshot(), 'playbook-live.json');
-  }
-
-  async function importJsonFile(event) {
-    const file = event.target.files?.[0];
-    event.target.value = '';
-    if (!file) return;
-    try {
-      const text = await file.text();
-      const data = JSON.parse(text);
-      importPlayData(data);
-      showToast('Imported');
-    } catch (error) {
-      showToast('Import failed');
-      console.error(error);
-    }
-  }
-
-  function importPlayData(data) {
-    checkpoint();
-    const incoming = Array.isArray(data.plays) ? data.plays : data.steps ? [data] : [];
-    if (incoming.length === 0) throw new Error('No plays found in JSON');
-    incoming.forEach((play) => {
-      normalizePlay(play);
-      if (!play.id) play.id = uid('play');
-      const existing = state.plays.findIndex((item) => item.id === play.id);
-      if (existing >= 0) state.plays[existing] = clone(play);
-      else state.plays.unshift(clone(play));
-    });
-    state.currentPlay = clone(incoming[0]);
-    state.currentStepIndex = 0;
-    persistLocalPlays();
-    saveCurrentPlayId();
-    renderAll();
-  }
-
   function createPlaybookSnapshot() {
     return {
       schemaVersion: 1,
       exportedAt: new Date().toISOString(),
       app: 'Playbook Live',
+      categories: clone(state.categories),
       plays: clone(state.plays)
     };
   }
 
   function parsePlaybookSnapshot(data, options = {}) {
+    model.readCategories(data);
     if (options.strict) validatePlaybookSnapshot(data);
     const plays = Array.isArray(data?.plays) ? clone(data.plays) : [];
     if (!Array.isArray(data?.plays)) throw new Error('GitHub file does not contain a plays array');
@@ -1627,6 +1814,7 @@
     if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error('Playbook JSON must be an object');
     if (data.schemaVersion !== 1) throw new Error('Playbook JSON has an unsupported schema version');
     if (!Array.isArray(data.plays)) throw new Error('Playbook JSON must contain a plays array');
+    model.readCategories(data);
     data.plays.forEach((play, playIndex) => {
       if (!play || typeof play !== 'object' || Array.isArray(play)) throw new Error(`Play ${playIndex + 1} is not valid`);
       if (play.schemaVersion !== 1) throw new Error(`Play ${playIndex + 1} has an unsupported schema version`);
@@ -1637,6 +1825,7 @@
         if (!step.entities || typeof step.entities !== 'object' || Array.isArray(step.entities)) throw new Error(`Play ${playIndex + 1}, step ${stepIndex + 1} is missing entities`);
         if (!Array.isArray(step.entities.players)) throw new Error(`Play ${playIndex + 1}, step ${stepIndex + 1} is missing players`);
         if (!Array.isArray(step.actions)) throw new Error(`Play ${playIndex + 1}, step ${stepIndex + 1} is missing actions`);
+        if (step.showPreviousStep !== undefined && typeof step.showPreviousStep !== 'boolean') throw new Error('Step shadow setting must be true or false');
       });
     });
   }
@@ -1645,14 +1834,17 @@
     setPlayerStatus('loading', 'Updating playbook...');
     try {
       const data = await fetchPlayerSnapshot();
-      const plays = parsePlaybookSnapshot(data, { strict: true });
-      state.plays = plays;
+      parsePlaybookSnapshot(data, { strict: true });
+      const visible = model.playerSnapshot(data);
+      state.plays = parsePlaybookSnapshot(visible, { strict: true });
+      state.categories = model.readCategories(visible);
       state.currentPlay = state.plays[0] ? clone(state.plays[0]) : null;
       state.currentStepIndex = 0;
       state.review.index = 0;
       state.review.progress = 0;
       state.review.playing = false;
-      localStorage.setItem(PLAYER_CACHE_KEY, JSON.stringify(data));
+      try { localStorage.setItem(PLAYER_CACHE_KEY, JSON.stringify(data)); }
+      catch (error) { console.warn('Offline cache could not be saved.', error); }
       setPlayerStatus('hidden', '');
       renderAll();
     } catch (error) {
@@ -1660,6 +1852,7 @@
       const cached = loadPlayerCache();
       if (cached) {
         state.plays = cached.plays;
+        state.categories = cached.categories;
         state.currentPlay = state.plays[0] ? clone(state.plays[0]) : null;
         state.currentStepIndex = 0;
         state.review.index = 0;
@@ -1670,11 +1863,12 @@
         return;
       }
       state.plays = [];
+      state.categories = [];
       state.currentPlay = null;
-      renderAll();
       setPlayerStatus('error', error.message?.includes('schema') || error.message?.includes('Playbook JSON')
         ? 'Playbook data is invalid. Please try again later.'
         : 'Playbook could not be loaded. Please check your connection and try again.');
+      renderAll();
     }
   }
 
@@ -1688,7 +1882,9 @@
     try {
       const data = JSON.parse(localStorage.getItem(PLAYER_CACHE_KEY) || 'null');
       if (!data) return null;
-      return { plays: parsePlaybookSnapshot(data, { strict: true }) };
+      parsePlaybookSnapshot(data, { strict: true });
+      const visible = model.playerSnapshot(data);
+      return { plays: parsePlaybookSnapshot(visible, { strict: true }), categories: model.readCategories(visible) };
     } catch (error) {
       console.warn('Player cache ignored because it is invalid.', error);
       return null;
@@ -1696,6 +1892,7 @@
   }
 
   function setPlayerStatus(kind, message) {
+    state.playerLoadState = kind;
     if (!els.playerStatus) return;
     els.playerStatus.className = `player-status ${kind === 'hidden' ? 'hidden' : kind}`;
     const statusMessage = els.playerStatus.querySelector('[data-player-status-message]');
@@ -1704,11 +1901,11 @@
   }
 
   function replacePlaybookSnapshot(data) {
-    state.plays = [];
-    persistLocalPlays();
-    localStorage.removeItem(STORAGE.current);
-
-    state.plays = parsePlaybookSnapshot(data);
+    const plays = parsePlaybookSnapshot(data, { strict: true });
+    const categories = model.readCategories(data);
+    stopPlayback();
+    state.plays = plays;
+    state.categories = categories;
     persistLocalPlays();
     state.currentPlay = state.plays[0] ? clone(state.plays[0]) : createNewPlay();
     state.currentStepIndex = 0;
@@ -1843,9 +2040,7 @@
 
   function publicPlaybookUrl() {
     const settings = getGitHubSettings();
-    const path = settings.path?.trim() || PLAYER_JSON_URL;
-    const separator = path.includes('?') ? '&' : '?';
-    return `${path}${separator}v=${Date.now()}`;
+    return model.publishedSnapshotUrl(settings, PLAYER_LINK);
   }
 
   function showSyncResult(kind, title, message, details = '') {

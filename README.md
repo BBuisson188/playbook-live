@@ -24,7 +24,7 @@ This starter is intentionally built as a static app so it can run on GitHub Page
 - Undo and redo
 - Select, delete, and basic endpoint editing
 - Local playbook saving with `localStorage`
-- JSON import and export
+- Per-step previous-motion shadows
 - Manual GitHub save/load through the GitHub Contents API
 - Animated review mode with play/pause, restart, step forward/back, and speed control
 - PWA manifest and service worker
@@ -32,7 +32,7 @@ This starter is intentionally built as a static app so it can run on GitHub Page
 
 ## How to run locally
 
-Open `index.html` directly in a browser, or serve the folder with a simple local server.
+Serve the folder with a local server so the public JSON can be fetched. The default page opens player mode; the editor is at `coach.html`.
 
 Example:
 
@@ -84,6 +84,27 @@ Save to GitHub overwrites the configured JSON file with the entire local playboo
 
 ## Main usage flow
 
+### Library organization
+
+- Open **Categories** in the coach Playbook to add or rename categories.
+- Assign a play using its category dropdown in the library or editor.
+- Turn off **Visible to players** to keep a category in coach mode while hiding it in player mode.
+- Use the up/down arrows to reorder plays within a category. The order is saved locally immediately.
+- Search and category filters are available in both modes.
+- Open **Publishing** for Copy Player Link, Save to GitHub, and Load from GitHub. Saving publishes category names, order, and visibility along with plays. Loading requires no credentials and fetches the live public playbook even when the editor is running locally. A configured repository/branch/file path is honored for public reads.
+- Hidden categories are filtered out of the player interface; the public JSON still contains them so coaches can restore them. This is not private storage. Previously downloaded offline versions remain available until the device reconnects.
+
+### Step controls
+
+- Previous/Next only navigate existing steps; **Add Step** creates a step after the selected one.
+- The step dropdown jumps directly to any step.
+- **Delete Step** removes the selected step, keeping at least one step per play.
+- **Last Step** removes every step after the selected step, after confirmation.
+- Both deletion operations support Undo. Save the play to retain the edit, then save to GitHub to update players.
+- **Previous step shadow** shows the immediately preceding step's paths at reduced opacity behind the selected step. It is saved independently for each step, supports Undo, and also appears during review and in player mode. The first step has no previous step, so its toggle is disabled.
+
+### Editing
+
 1. Open Editor.
 2. Tap Offense or Defense, then tap the court to place players.
 3. Tap Ball, then tap the court or a player.
@@ -95,5 +116,8 @@ Save to GitHub overwrites the configured JSON file with the entire local playboo
 9. Open Review to animate the play.
 
 ## Notes
+
+Run the data regression tests with `node --test tests/playbook-model.test.cjs`.
+The optional `node tests/browser-smoke.cjs` check requires Playwright and Chrome; set `PLAYWRIGHT_MODULE` to a bundled Playwright module path if it is not locally installed. It uses an isolated browser, starts its own temporary HTTP server, and closes both after testing. Screenshots are written to the ignored `.test-results/` folder.
 
 This is a complete first-version starter, but it is still meant for Codex iteration. The highest-value improvements are listed in `HANDOFF.md`.
