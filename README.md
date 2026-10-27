@@ -103,7 +103,7 @@ Save to GitHub overwrites the configured JSON file with the entire local playboo
 - **Last Step** removes every step after the selected step, after confirmation.
 - Both deletion operations support Undo. Save the play to retain the edit, then save to GitHub to update players.
 - **Previous step shadow** shows the immediately preceding step's paths at reduced opacity behind the selected step. It is saved independently for each step, supports Undo, and also appears during review and in player mode. The first step has no previous step, so its toggle is disabled.
-- With **Select** active, tap an action to reveal **Delay start**. Delayed actions wait until halfway through the step and animate during the remaining time. The setting supports Undo/Redo and is published with the play.
+- Tap a pass, cut, dribble, or screen to reveal **Delay start**. The switch also appears immediately after drawing an action, without changing tools. Delayed actions wait until halfway through the step and animate during the remaining time. The setting supports Undo/Redo and is published with the play.
 - The compact Delay switch floats in the court's top corner and does not change the court size.
 - Review plays through the remaining steps automatically. At normal speed, each step lasts 1.65 seconds with a one-third-second pause before the next step. The speed slider scales both movement and pauses. Playback stops at the final position; pressing Play again replays from the beginning.
 - Review's next/back arrows animate one step forward or rewind to the preceding step's start, rather than jumping between static diagrams. Manual stepping also follows the speed slider.

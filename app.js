@@ -268,7 +268,7 @@
       renderReview();
     });
     els.actionDelayToggle.addEventListener('change', () => {
-      if (state.tool !== 'select' || state.selected?.kind !== 'action') return;
+      if (state.selected?.kind !== 'action') return;
       const action = findAction(currentStep(), state.selected.id);
       if (!action) return;
       checkpoint();
@@ -1095,7 +1095,7 @@
     els.undoBtn.disabled = state.undoStack.length === 0;
     els.redoBtn.disabled = state.redoStack.length === 0;
     els.courtChooser.classList.toggle('hidden', Boolean(state.currentPlay.courtType));
-    const action = state.tool === 'select' && state.selected?.kind === 'action' ? findAction(currentStep(), state.selected.id) : null;
+    const action = state.selected?.kind === 'action' ? findAction(currentStep(), state.selected.id) : null;
     els.actionInspector.classList.toggle('hidden', !action);
     if (action) {
       els.selectedActionName.textContent = ACTION_LABELS[action.type] || 'Action';
