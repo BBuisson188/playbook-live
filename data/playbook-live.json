@@ -1,7 +1,24 @@
 {
   "schemaVersion": 1,
-  "exportedAt": "2026-10-26T23:39:00.204Z",
+  "exportedAt": "2026-10-27T00:28:06.780Z",
   "app": "Playbook Live",
+  "categories": [
+    {
+      "id": "category_v7mm9vr_wna8",
+      "name": "Inbound",
+      "hidden": false
+    },
+    {
+      "id": "category_cve56a7_wttd",
+      "name": "Man offense",
+      "hidden": true
+    },
+    {
+      "id": "category_ck3zi1e_wxx0",
+      "name": "Zone offense",
+      "hidden": true
+    }
+  ],
   "plays": [
     {
       "schemaVersion": 1,
@@ -11,7 +28,7 @@
       "tags": [],
       "courtType": "half",
       "createdAt": "2026-10-26T22:22:14.294Z",
-      "updatedAt": "2026-10-26T22:26:12.133Z",
+      "updatedAt": "2026-10-27T00:23:42.724Z",
       "steps": [
         {
           "id": "step_x0jwe6f_nrbq",
@@ -89,7 +106,8 @@
               },
               "targetPlayerId": null
             }
-          ]
+          ],
+          "showPreviousStep": false
         },
         {
           "id": "step_ddu2gb7_qwrw",
@@ -171,7 +189,8 @@
               },
               "targetPlayerId": null
             }
-          ]
+          ],
+          "showPreviousStep": true
         },
         {
           "id": "step_08wsbag_rii7",
@@ -239,7 +258,8 @@
                 "y": 270.3153381347656
               }
             }
-          ]
+          ],
+          "showPreviousStep": true
         },
         {
           "id": "step_qzneik1_rvx1",
@@ -303,7 +323,8 @@
               },
               "targetPlayerId": null
             }
-          ]
+          ],
+          "showPreviousStep": true
         },
         {
           "id": "step_usc17fk_s2ma",
@@ -367,9 +388,11 @@
               },
               "targetPlayerId": "o_egp8u2i_ouar"
             }
-          ]
+          ],
+          "showPreviousStep": true
         }
-      ]
+      ],
+      "categoryId": "category_v7mm9vr_wna8"
     },
     {
       "schemaVersion": 1,
@@ -379,7 +402,7 @@
       "tags": [],
       "courtType": "half",
       "createdAt": "2026-10-26T23:21:55.352Z",
-      "updatedAt": "2026-10-26T23:39:00.182Z",
+      "updatedAt": "2026-10-27T00:23:34.354Z",
       "steps": [
         {
           "id": "step_94yp4x3_sihk",
@@ -428,7 +451,8 @@
               "ownerId": "o_mau049i_st9y"
             }
           },
-          "actions": []
+          "actions": [],
+          "showPreviousStep": false
         },
         {
           "id": "step_eux4z3g_tcm9",
@@ -510,7 +534,8 @@
                 "y": 384.4858093261719
               }
             }
-          ]
+          ],
+          "showPreviousStep": false
         },
         {
           "id": "step_j5knrbf_ue5i",
@@ -608,7 +633,8 @@
                 "y": 137.67613220214844
               }
             }
-          ]
+          ],
+          "showPreviousStep": false
         },
         {
           "id": "step_ksp2opz_vfoi",
@@ -708,9 +734,11 @@
               },
               "targetPlayerId": null
             }
-          ]
+          ],
+          "showPreviousStep": false
         }
-      ]
+      ],
+      "categoryId": "category_v7mm9vr_wna8"
     },
     {
       "schemaVersion": 1,
@@ -720,7 +748,7 @@
       "tags": [],
       "courtType": "half",
       "createdAt": "2026-05-09T11:39:53.978Z",
-      "updatedAt": "2026-05-09T15:37:08.497Z",
+      "updatedAt": "2026-10-27T00:25:12.426Z",
       "steps": [
         {
           "id": "step_criyzmg_uw3e",
@@ -860,7 +888,8 @@
                 "y": 193.91876220703125
               }
             }
-          ]
+          ],
+          "showPreviousStep": false
         },
         {
           "id": "step_r2sqmer_wh8s",
@@ -964,9 +993,11 @@
                 "y": 246.688232421875
               }
             }
-          ]
+          ],
+          "showPreviousStep": true
         }
-      ]
+      ],
+      "categoryId": "category_cve56a7_wttd"
     },
     {
       "schemaVersion": 1,
@@ -976,7 +1007,7 @@
       "tags": [],
       "courtType": "half",
       "createdAt": "2026-05-09T11:36:36.060Z",
-      "updatedAt": "2026-05-09T11:39:44.183Z",
+      "updatedAt": "2026-10-27T00:24:46.815Z",
       "steps": [
         {
           "id": "step_zfvdsjm_qndo",
@@ -1087,7 +1118,8 @@
                 "y": 274.3922119140625
               }
             }
-          ]
+          ],
+          "showPreviousStep": false
         },
         {
           "id": "step_w8odqx5_sbgr",
@@ -1209,7 +1241,8 @@
                 "y": 232.1766357421875
               }
             }
-          ]
+          ],
+          "showPreviousStep": false
         },
         {
           "id": "step_3abrclo_tnop",
@@ -1313,9 +1346,11 @@
                 "y": 208.4303741455078
               }
             }
-          ]
+          ],
+          "showPreviousStep": false
         }
-      ]
+      ],
+      "categoryId": "category_cve56a7_wttd"
     },
     {
       "schemaVersion": 1,
@@ -1325,7 +1360,7 @@
       "tags": [],
       "courtType": "half",
       "createdAt": "2026-05-09T19:44:14.209Z",
-      "updatedAt": "2026-05-11T20:38:33.755Z",
+      "updatedAt": "2026-10-27T00:24:49.715Z",
       "steps": [
         {
           "id": "step_ac5jx7w_5r41",
@@ -1459,7 +1494,8 @@
               },
               "targetPlayerId": null
             }
-          ]
+          ],
+          "showPreviousStep": false
         },
         {
           "id": "step_7wdgb23_9grt",
@@ -1538,7 +1574,8 @@
               "targetPlayerId": null,
               "control": null
             }
-          ]
+          ],
+          "showPreviousStep": false
         },
         {
           "id": "step_8bkaccm_b613",
@@ -1634,9 +1671,11 @@
                 "y": 362.78106689453125
               }
             }
-          ]
+          ],
+          "showPreviousStep": false
         }
-      ]
+      ],
+      "categoryId": "category_ck3zi1e_wxx0"
     },
     {
       "schemaVersion": 1,
@@ -1726,7 +1765,8 @@
             ],
             "ball": null
           },
-          "actions": []
+          "actions": [],
+          "showPreviousStep": false
         },
         {
           "id": "step_mh0wz74_9b3k",
@@ -1825,7 +1865,8 @@
               },
               "targetPlayerId": "o_a496mvs_91un"
             }
-          ]
+          ],
+          "showPreviousStep": false
         },
         {
           "id": "step_08qv12e_agiv",
@@ -1970,7 +2011,8 @@
               },
               "targetPlayerId": null
             }
-          ]
+          ],
+          "showPreviousStep": false
         },
         {
           "id": "step_t5i507b_bc5f",
@@ -2083,9 +2125,11 @@
               },
               "targetPlayerId": null
             }
-          ]
+          ],
+          "showPreviousStep": false
         }
-      ]
+      ],
+      "categoryId": null
     },
     {
       "schemaVersion": 1,
@@ -2222,7 +2266,8 @@
               },
               "targetPlayerId": null
             }
-          ]
+          ],
+          "showPreviousStep": false
         },
         {
           "id": "step_zmr10le_wvkb",
@@ -2367,7 +2412,8 @@
               },
               "targetPlayerId": null
             }
-          ]
+          ],
+          "showPreviousStep": false
         },
         {
           "id": "step_cig9to3_xq0w",
@@ -2494,7 +2540,8 @@
               },
               "targetPlayerId": null
             }
-          ]
+          ],
+          "showPreviousStep": false
         },
         {
           "id": "step_b9ajxr6_1rd4",
@@ -2578,9 +2625,11 @@
               "ownerId": "o_u27dnxv_vfae"
             }
           },
-          "actions": []
+          "actions": [],
+          "showPreviousStep": false
         }
-      ]
+      ],
+      "categoryId": null
     },
     {
       "schemaVersion": 1,
@@ -2590,7 +2639,7 @@
       "tags": [],
       "courtType": "half",
       "createdAt": "2026-05-11T00:43:30.655Z",
-      "updatedAt": "2026-05-11T13:26:35.449Z",
+      "updatedAt": "2026-10-27T00:28:06.768Z",
       "steps": [
         {
           "id": "step_23s5sw4_ah27",
@@ -2654,7 +2703,8 @@
               },
               "targetPlayerId": "o_09rvv9e_apw8"
             }
-          ]
+          ],
+          "showPreviousStep": false
         },
         {
           "id": "step_r4u5tj6_cgr2",
@@ -2740,7 +2790,8 @@
                 "y": 565
               }
             }
-          ]
+          ],
+          "showPreviousStep": false
         },
         {
           "id": "step_3fb65ta_dm45",
@@ -2832,7 +2883,8 @@
               },
               "targetPlayerId": null
             }
-          ]
+          ],
+          "showPreviousStep": false
         },
         {
           "id": "step_p1jei7e_k5gd",
@@ -2914,7 +2966,8 @@
                 "y": 490.7470397949219
               }
             }
-          ]
+          ],
+          "showPreviousStep": false
         },
         {
           "id": "step_qhnwswj_kx2p",
@@ -3010,7 +3063,8 @@
               },
               "targetPlayerId": "o_axsau40_ama6"
             }
-          ]
+          ],
+          "showPreviousStep": false
         },
         {
           "id": "step_uaojoza_lrgl",
@@ -3102,7 +3156,8 @@
               },
               "targetPlayerId": "o_a7f59b1_ap3o"
             }
-          ]
+          ],
+          "showPreviousStep": false
         },
         {
           "id": "step_guqirkj_m9x3",
@@ -3151,9 +3206,11 @@
               "ownerId": "o_a7f59b1_ap3o"
             }
           },
-          "actions": []
+          "actions": [],
+          "showPreviousStep": false
         }
-      ]
+      ],
+      "categoryId": "category_ck3zi1e_wxx0"
     },
     {
       "schemaVersion": 1,
@@ -3163,7 +3220,7 @@
       "tags": [],
       "courtType": "half",
       "createdAt": "2026-05-09T19:13:59.723Z",
-      "updatedAt": "2026-05-09T19:19:42.640Z",
+      "updatedAt": "2026-10-27T00:25:03.152Z",
       "steps": [
         {
           "id": "step_4j1wu86_2v1n",
@@ -3245,7 +3302,8 @@
                 "y": 354.86566162109375
               }
             }
-          ]
+          ],
+          "showPreviousStep": false
         },
         {
           "id": "step_tippz9a_556q",
@@ -3327,7 +3385,8 @@
               },
               "targetPlayerId": null
             }
-          ]
+          ],
+          "showPreviousStep": false
         },
         {
           "id": "step_zflyam1_5kts",
@@ -3391,7 +3450,8 @@
               },
               "targetPlayerId": "o_uv7h46s_39i4"
             }
-          ]
+          ],
+          "showPreviousStep": false
         },
         {
           "id": "step_4ckpqco_66ub",
@@ -3473,7 +3533,8 @@
                 "y": 339.0348205566406
               }
             }
-          ]
+          ],
+          "showPreviousStep": false
         },
         {
           "id": "step_u2778w0_6uv3",
@@ -3551,7 +3612,8 @@
               },
               "targetPlayerId": null
             }
-          ]
+          ],
+          "showPreviousStep": false
         },
         {
           "id": "step_0owuxlm_7447",
@@ -3615,9 +3677,11 @@
               },
               "targetPlayerId": "o_iie3guq_38ue"
             }
-          ]
+          ],
+          "showPreviousStep": false
         }
-      ]
+      ],
+      "categoryId": "category_ck3zi1e_wxx0"
     }
   ]
 }
