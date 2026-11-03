@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "exportedAt": "2026-11-03T01:49:29.455Z",
+  "exportedAt": "2026-11-03T01:54:23.975Z",
   "app": "Playbook Live",
   "categories": [
     {
@@ -34,7 +34,7 @@
       "categoryId": "category_cve56a7_wttd",
       "courtType": "half",
       "createdAt": "2026-10-27T11:15:02.404Z",
-      "updatedAt": "2026-11-03T01:49:29.448Z",
+      "updatedAt": "2026-11-03T01:49:55.029Z",
       "steps": [
         {
           "id": "step_lti8avu_9l6s",
@@ -884,6 +884,355 @@
     },
     {
       "schemaVersion": 1,
+      "id": "play_jpkekri_sihk",
+      "name": "Flash",
+      "description": "",
+      "tags": [],
+      "courtType": "half",
+      "createdAt": "2026-10-26T23:21:55.352Z",
+      "updatedAt": "2026-10-27T11:15:02.386Z",
+      "steps": [
+        {
+          "id": "step_94yp4x3_sihk",
+          "notes": "",
+          "entities": {
+            "players": [
+              {
+                "id": "o_mau049i_st9y",
+                "side": "offense",
+                "number": 1,
+                "x": 423.92010498046875,
+                "y": 554.2810668945312
+              },
+              {
+                "id": "o_jml06bm_suz8",
+                "side": "offense",
+                "number": 2,
+                "x": 236.82839965820312,
+                "y": 452.8668518066406
+              },
+              {
+                "id": "o_u4boim6_swev",
+                "side": "offense",
+                "number": 3,
+                "x": 245.5709991455078,
+                "y": 321.7278137207031
+              },
+              {
+                "id": "o_rsstj7i_sxat",
+                "side": "offense",
+                "number": 4,
+                "x": 423.92010498046875,
+                "y": 312.9851989746094
+              },
+              {
+                "id": "o_cpr1f0s_sy02",
+                "side": "offense",
+                "number": 5,
+                "x": 425.66864013671875,
+                "y": 360.19525146484375
+              }
+            ],
+            "ball": {
+              "x": 445.92010498046875,
+              "y": 573,
+              "ownerId": "o_mau049i_st9y"
+            }
+          },
+          "actions": [],
+          "showPreviousStep": false
+        },
+        {
+          "id": "step_eux4z3g_tcm9",
+          "notes": "",
+          "entities": {
+            "players": [
+              {
+                "id": "o_mau049i_st9y",
+                "side": "offense",
+                "number": 1,
+                "x": 423.92010498046875,
+                "y": 554.2810668945312
+              },
+              {
+                "id": "o_jml06bm_suz8",
+                "side": "offense",
+                "number": 2,
+                "x": 236.82839965820312,
+                "y": 452.8668518066406
+              },
+              {
+                "id": "o_u4boim6_swev",
+                "side": "offense",
+                "number": 3,
+                "x": 245.5709991455078,
+                "y": 321.7278137207031
+              },
+              {
+                "id": "o_rsstj7i_sxat",
+                "side": "offense",
+                "number": 4,
+                "x": 423.92010498046875,
+                "y": 312.9851989746094
+              },
+              {
+                "id": "o_cpr1f0s_sy02",
+                "side": "offense",
+                "number": 5,
+                "x": 425.66864013671875,
+                "y": 360.19525146484375
+              }
+            ],
+            "ball": {
+              "x": 445.92010498046875,
+              "y": 573,
+              "ownerId": "o_mau049i_st9y"
+            }
+          },
+          "actions": [
+            {
+              "id": "act_p0yudyf_thsy",
+              "type": "move",
+              "actorId": "o_u4boim6_swev",
+              "from": {
+                "x": 245.5709991455078,
+                "y": 321.7278137207031
+              },
+              "to": {
+                "x": 112.92505645751953,
+                "y": 453.3238525390625
+              },
+              "targetPlayerId": null,
+              "delayed": true
+            },
+            {
+              "id": "act_2pi9m14_tkom",
+              "type": "screen",
+              "actorId": "o_jml06bm_suz8",
+              "from": {
+                "x": 236.82839965820312,
+                "y": 452.8668518066406
+              },
+              "to": {
+                "x": 245.5642547607422,
+                "y": 360.9801025390625
+              },
+              "targetPlayerId": null,
+              "control": {
+                "x": 218.70062255859375,
+                "y": 384.4858093261719
+              }
+            }
+          ],
+          "showPreviousStep": false
+        },
+        {
+          "id": "step_j5knrbf_ue5i",
+          "notes": "",
+          "entities": {
+            "players": [
+              {
+                "id": "o_mau049i_st9y",
+                "side": "offense",
+                "number": 1,
+                "x": 423.92010498046875,
+                "y": 554.2810668945312
+              },
+              {
+                "id": "o_jml06bm_suz8",
+                "side": "offense",
+                "number": 2,
+                "x": 230.57672322532687,
+                "y": 390.71266480636285
+              },
+              {
+                "id": "o_u4boim6_swev",
+                "side": "offense",
+                "number": 3,
+                "x": 112.92505645751953,
+                "y": 453.3238525390625
+              },
+              {
+                "id": "o_rsstj7i_sxat",
+                "side": "offense",
+                "number": 4,
+                "x": 423.92010498046875,
+                "y": 312.9851989746094
+              },
+              {
+                "id": "o_cpr1f0s_sy02",
+                "side": "offense",
+                "number": 5,
+                "x": 425.66864013671875,
+                "y": 360.19525146484375
+              }
+            ],
+            "ball": {
+              "x": 445.92010498046875,
+              "y": 573,
+              "ownerId": "o_mau049i_st9y"
+            }
+          },
+          "actions": [
+            {
+              "id": "act_ey529n0_ufy1",
+              "type": "screen",
+              "actorId": "o_rsstj7i_sxat",
+              "from": {
+                "x": 423.92010498046875,
+                "y": 312.9851989746094
+              },
+              "to": {
+                "x": 391.6352844238281,
+                "y": 315.6477355957031
+              },
+              "targetPlayerId": null,
+              "control": null
+            },
+            {
+              "id": "act_vh7cdqf_ugwr",
+              "type": "screen",
+              "actorId": "o_cpr1f0s_sy02",
+              "from": {
+                "x": 425.66864013671875,
+                "y": 360.19525146484375
+              },
+              "to": {
+                "x": 393.31427001953125,
+                "y": 359.3011474609375
+              },
+              "targetPlayerId": null,
+              "control": null
+            },
+            {
+              "id": "act_tivf7wr_v0yt",
+              "type": "move",
+              "actorId": "o_jml06bm_suz8",
+              "from": {
+                "x": 230.57672322532687,
+                "y": 390.71266480636285
+              },
+              "to": {
+                "x": 541.0642700195312,
+                "y": 444.9289855957031
+              },
+              "targetPlayerId": null,
+              "control": {
+                "x": 470.5472106933594,
+                "y": 137.67613220214844
+              },
+              "delayed": true
+            }
+          ],
+          "showPreviousStep": false
+        },
+        {
+          "id": "step_ksp2opz_vfoi",
+          "notes": "",
+          "entities": {
+            "players": [
+              {
+                "id": "o_mau049i_st9y",
+                "side": "offense",
+                "number": 1,
+                "x": 423.92010498046875,
+                "y": 554.2810668945312
+              },
+              {
+                "id": "o_jml06bm_suz8",
+                "side": "offense",
+                "number": 2,
+                "x": 541.0642700195312,
+                "y": 444.9289855957031
+              },
+              {
+                "id": "o_u4boim6_swev",
+                "side": "offense",
+                "number": 3,
+                "x": 112.92505645751953,
+                "y": 453.3238525390625
+              },
+              {
+                "id": "o_rsstj7i_sxat",
+                "side": "offense",
+                "number": 4,
+                "x": 423.92010498046875,
+                "y": 312.9851989746094
+              },
+              {
+                "id": "o_cpr1f0s_sy02",
+                "side": "offense",
+                "number": 5,
+                "x": 425.66864013671875,
+                "y": 360.19525146484375
+              }
+            ],
+            "ball": {
+              "x": 445.92010498046875,
+              "y": 573,
+              "ownerId": "o_mau049i_st9y"
+            }
+          },
+          "actions": [
+            {
+              "id": "act_lmwp83v_viu4",
+              "type": "screen",
+              "actorId": "o_cpr1f0s_sy02",
+              "from": {
+                "x": 425.66864013671875,
+                "y": 360.19525146484375
+              },
+              "to": {
+                "x": 364.7716369628906,
+                "y": 461.71875
+              },
+              "targetPlayerId": null,
+              "control": {
+                "x": 388.27734375,
+                "y": 455.0028381347656
+              }
+            },
+            {
+              "id": "act_glgyofy_w39u",
+              "type": "move",
+              "actorId": "o_rsstj7i_sxat",
+              "from": {
+                "x": 423.92010498046875,
+                "y": 312.9851989746094
+              },
+              "to": {
+                "x": 416.8199462890625,
+                "y": 471.7926025390625
+              },
+              "targetPlayerId": null,
+              "control": {
+                "x": 445.362548828125,
+                "y": 344.1903381347656
+              },
+              "delayed": true
+            },
+            {
+              "id": "act_fywsqqv_x0aq",
+              "type": "pass",
+              "actorId": "ball",
+              "from": {
+                "x": 445.92010498046875,
+                "y": 573
+              },
+              "to": {
+                "x": 425.21484375,
+                "y": 473.4715881347656
+              },
+              "targetPlayerId": null
+            }
+          ],
+          "showPreviousStep": false
+        }
+      ],
+      "categoryId": "category_v7mm9vr_wna8"
+    },
+    {
+      "schemaVersion": 1,
       "id": "play_l7extzf_6y0s",
       "name": "Press break",
       "description": "",
@@ -1394,355 +1743,6 @@
           ]
         }
       ]
-    },
-    {
-      "schemaVersion": 1,
-      "id": "play_jpkekri_sihk",
-      "name": "Flash",
-      "description": "",
-      "tags": [],
-      "courtType": "half",
-      "createdAt": "2026-10-26T23:21:55.352Z",
-      "updatedAt": "2026-10-27T11:15:02.386Z",
-      "steps": [
-        {
-          "id": "step_94yp4x3_sihk",
-          "notes": "",
-          "entities": {
-            "players": [
-              {
-                "id": "o_mau049i_st9y",
-                "side": "offense",
-                "number": 1,
-                "x": 423.92010498046875,
-                "y": 554.2810668945312
-              },
-              {
-                "id": "o_jml06bm_suz8",
-                "side": "offense",
-                "number": 2,
-                "x": 236.82839965820312,
-                "y": 452.8668518066406
-              },
-              {
-                "id": "o_u4boim6_swev",
-                "side": "offense",
-                "number": 3,
-                "x": 245.5709991455078,
-                "y": 321.7278137207031
-              },
-              {
-                "id": "o_rsstj7i_sxat",
-                "side": "offense",
-                "number": 4,
-                "x": 423.92010498046875,
-                "y": 312.9851989746094
-              },
-              {
-                "id": "o_cpr1f0s_sy02",
-                "side": "offense",
-                "number": 5,
-                "x": 425.66864013671875,
-                "y": 360.19525146484375
-              }
-            ],
-            "ball": {
-              "x": 445.92010498046875,
-              "y": 573,
-              "ownerId": "o_mau049i_st9y"
-            }
-          },
-          "actions": [],
-          "showPreviousStep": false
-        },
-        {
-          "id": "step_eux4z3g_tcm9",
-          "notes": "",
-          "entities": {
-            "players": [
-              {
-                "id": "o_mau049i_st9y",
-                "side": "offense",
-                "number": 1,
-                "x": 423.92010498046875,
-                "y": 554.2810668945312
-              },
-              {
-                "id": "o_jml06bm_suz8",
-                "side": "offense",
-                "number": 2,
-                "x": 236.82839965820312,
-                "y": 452.8668518066406
-              },
-              {
-                "id": "o_u4boim6_swev",
-                "side": "offense",
-                "number": 3,
-                "x": 245.5709991455078,
-                "y": 321.7278137207031
-              },
-              {
-                "id": "o_rsstj7i_sxat",
-                "side": "offense",
-                "number": 4,
-                "x": 423.92010498046875,
-                "y": 312.9851989746094
-              },
-              {
-                "id": "o_cpr1f0s_sy02",
-                "side": "offense",
-                "number": 5,
-                "x": 425.66864013671875,
-                "y": 360.19525146484375
-              }
-            ],
-            "ball": {
-              "x": 445.92010498046875,
-              "y": 573,
-              "ownerId": "o_mau049i_st9y"
-            }
-          },
-          "actions": [
-            {
-              "id": "act_p0yudyf_thsy",
-              "type": "move",
-              "actorId": "o_u4boim6_swev",
-              "from": {
-                "x": 245.5709991455078,
-                "y": 321.7278137207031
-              },
-              "to": {
-                "x": 112.92505645751953,
-                "y": 453.3238525390625
-              },
-              "targetPlayerId": null,
-              "delayed": true
-            },
-            {
-              "id": "act_2pi9m14_tkom",
-              "type": "screen",
-              "actorId": "o_jml06bm_suz8",
-              "from": {
-                "x": 236.82839965820312,
-                "y": 452.8668518066406
-              },
-              "to": {
-                "x": 245.5642547607422,
-                "y": 360.9801025390625
-              },
-              "targetPlayerId": null,
-              "control": {
-                "x": 218.70062255859375,
-                "y": 384.4858093261719
-              }
-            }
-          ],
-          "showPreviousStep": false
-        },
-        {
-          "id": "step_j5knrbf_ue5i",
-          "notes": "",
-          "entities": {
-            "players": [
-              {
-                "id": "o_mau049i_st9y",
-                "side": "offense",
-                "number": 1,
-                "x": 423.92010498046875,
-                "y": 554.2810668945312
-              },
-              {
-                "id": "o_jml06bm_suz8",
-                "side": "offense",
-                "number": 2,
-                "x": 230.57672322532687,
-                "y": 390.71266480636285
-              },
-              {
-                "id": "o_u4boim6_swev",
-                "side": "offense",
-                "number": 3,
-                "x": 112.92505645751953,
-                "y": 453.3238525390625
-              },
-              {
-                "id": "o_rsstj7i_sxat",
-                "side": "offense",
-                "number": 4,
-                "x": 423.92010498046875,
-                "y": 312.9851989746094
-              },
-              {
-                "id": "o_cpr1f0s_sy02",
-                "side": "offense",
-                "number": 5,
-                "x": 425.66864013671875,
-                "y": 360.19525146484375
-              }
-            ],
-            "ball": {
-              "x": 445.92010498046875,
-              "y": 573,
-              "ownerId": "o_mau049i_st9y"
-            }
-          },
-          "actions": [
-            {
-              "id": "act_ey529n0_ufy1",
-              "type": "screen",
-              "actorId": "o_rsstj7i_sxat",
-              "from": {
-                "x": 423.92010498046875,
-                "y": 312.9851989746094
-              },
-              "to": {
-                "x": 391.6352844238281,
-                "y": 315.6477355957031
-              },
-              "targetPlayerId": null,
-              "control": null
-            },
-            {
-              "id": "act_vh7cdqf_ugwr",
-              "type": "screen",
-              "actorId": "o_cpr1f0s_sy02",
-              "from": {
-                "x": 425.66864013671875,
-                "y": 360.19525146484375
-              },
-              "to": {
-                "x": 393.31427001953125,
-                "y": 359.3011474609375
-              },
-              "targetPlayerId": null,
-              "control": null
-            },
-            {
-              "id": "act_tivf7wr_v0yt",
-              "type": "move",
-              "actorId": "o_jml06bm_suz8",
-              "from": {
-                "x": 230.57672322532687,
-                "y": 390.71266480636285
-              },
-              "to": {
-                "x": 541.0642700195312,
-                "y": 444.9289855957031
-              },
-              "targetPlayerId": null,
-              "control": {
-                "x": 470.5472106933594,
-                "y": 137.67613220214844
-              },
-              "delayed": true
-            }
-          ],
-          "showPreviousStep": false
-        },
-        {
-          "id": "step_ksp2opz_vfoi",
-          "notes": "",
-          "entities": {
-            "players": [
-              {
-                "id": "o_mau049i_st9y",
-                "side": "offense",
-                "number": 1,
-                "x": 423.92010498046875,
-                "y": 554.2810668945312
-              },
-              {
-                "id": "o_jml06bm_suz8",
-                "side": "offense",
-                "number": 2,
-                "x": 541.0642700195312,
-                "y": 444.9289855957031
-              },
-              {
-                "id": "o_u4boim6_swev",
-                "side": "offense",
-                "number": 3,
-                "x": 112.92505645751953,
-                "y": 453.3238525390625
-              },
-              {
-                "id": "o_rsstj7i_sxat",
-                "side": "offense",
-                "number": 4,
-                "x": 423.92010498046875,
-                "y": 312.9851989746094
-              },
-              {
-                "id": "o_cpr1f0s_sy02",
-                "side": "offense",
-                "number": 5,
-                "x": 425.66864013671875,
-                "y": 360.19525146484375
-              }
-            ],
-            "ball": {
-              "x": 445.92010498046875,
-              "y": 573,
-              "ownerId": "o_mau049i_st9y"
-            }
-          },
-          "actions": [
-            {
-              "id": "act_lmwp83v_viu4",
-              "type": "screen",
-              "actorId": "o_cpr1f0s_sy02",
-              "from": {
-                "x": 425.66864013671875,
-                "y": 360.19525146484375
-              },
-              "to": {
-                "x": 364.7716369628906,
-                "y": 461.71875
-              },
-              "targetPlayerId": null,
-              "control": {
-                "x": 388.27734375,
-                "y": 455.0028381347656
-              }
-            },
-            {
-              "id": "act_glgyofy_w39u",
-              "type": "move",
-              "actorId": "o_rsstj7i_sxat",
-              "from": {
-                "x": 423.92010498046875,
-                "y": 312.9851989746094
-              },
-              "to": {
-                "x": 416.8199462890625,
-                "y": 471.7926025390625
-              },
-              "targetPlayerId": null,
-              "control": {
-                "x": 445.362548828125,
-                "y": 344.1903381347656
-              },
-              "delayed": true
-            },
-            {
-              "id": "act_fywsqqv_x0aq",
-              "type": "pass",
-              "actorId": "ball",
-              "from": {
-                "x": 445.92010498046875,
-                "y": 573
-              },
-              "to": {
-                "x": 425.21484375,
-                "y": 473.4715881347656
-              },
-              "targetPlayerId": null
-            }
-          ],
-          "showPreviousStep": false
-        }
-      ],
-      "categoryId": "category_v7mm9vr_wna8"
     },
     {
       "schemaVersion": 1,
@@ -4224,7 +4224,7 @@
       "tags": [],
       "courtType": "half",
       "createdAt": "2026-05-09T19:13:59.723Z",
-      "updatedAt": "2026-11-03T01:49:16.936Z",
+      "updatedAt": "2026-11-03T01:54:23.966Z",
       "steps": [
         {
           "id": "step_4j1wu86_2v1n",
@@ -4297,14 +4297,31 @@
                 "y": 308.6923828125
               },
               "to": {
-                "x": 282.6670837402344,
-                "y": 339.0348205566406
+                "x": 288.0487365722656,
+                "y": 346.3112487792969
+              },
+              "targetPlayerId": null,
+              "control": null,
+              "delayed": true
+            },
+            {
+              "id": "act_pxlb9i7_6t25",
+              "type": "move",
+              "actorId": "o_fjt5puu_37x0",
+              "from": {
+                "x": 322.24420166015625,
+                "y": 149.06471252441406
+              },
+              "to": {
+                "x": 527.3963623046875,
+                "y": 290.1514587402344
               },
               "targetPlayerId": null,
               "control": {
-                "x": 429.1023864746094,
-                "y": 354.86566162109375
-              }
+                "x": 477.92230224609375,
+                "y": 165.79763793945312
+              },
+              "delayed": true
             }
           ],
           "showPreviousStep": false
@@ -4318,8 +4335,8 @@
                 "id": "o_fjt5puu_37x0",
                 "side": "offense",
                 "number": 1,
-                "x": 322.24420166015625,
-                "y": 149.06471252441406
+                "x": 527.3963623046875,
+                "y": 290.1514587402344
               },
               {
                 "id": "o_iie3guq_38ue",
@@ -4332,8 +4349,8 @@
                 "id": "o_uv7h46s_39i4",
                 "side": "offense",
                 "number": 3,
-                "x": 282.6670837402344,
-                "y": 339.0348205566406
+                "x": 288.0487365722656,
+                "y": 346.3112487792969
               },
               {
                 "id": "o_moak56t_3ajg",
@@ -4358,30 +4375,12 @@
           },
           "actions": [
             {
-              "id": "act_6qfb7el_57rn",
-              "type": "move",
-              "actorId": "o_fjt5puu_37x0",
-              "from": {
-                "x": 322.24420166015625,
-                "y": 149.06471252441406
-              },
-              "to": {
-                "x": 537.27978515625,
-                "y": 311.3308410644531
-              },
-              "targetPlayerId": null,
-              "control": {
-                "x": 462.0832824707031,
-                "y": 215.02655029296875
-              }
-            },
-            {
               "id": "act_o9b9er3_5g2t",
               "type": "move",
               "actorId": "o_uv7h46s_39i4",
               "from": {
-                "x": 282.6670837402344,
-                "y": 339.0348205566406
+                "x": 288.0487365722656,
+                "y": 346.3112487792969
               },
               "to": {
                 "x": 324.8826599121094,
@@ -4390,7 +4389,7 @@
               "targetPlayerId": null
             }
           ],
-          "showPreviousStep": false
+          "showPreviousStep": true
         },
         {
           "id": "step_zflyam1_5kts",
@@ -4401,8 +4400,8 @@
                 "id": "o_fjt5puu_37x0",
                 "side": "offense",
                 "number": 1,
-                "x": 537.27978515625,
-                "y": 311.3308410644531
+                "x": 527.3963623046875,
+                "y": 290.1514587402344
               },
               {
                 "id": "o_iie3guq_38ue",
@@ -4455,7 +4454,7 @@
               "targetPlayerId": "o_uv7h46s_39i4"
             }
           ],
-          "showPreviousStep": false
+          "showPreviousStep": true
         },
         {
           "id": "step_4ckpqco_66ub",
@@ -4466,8 +4465,8 @@
                 "id": "o_fjt5puu_37x0",
                 "side": "offense",
                 "number": 1,
-                "x": 537.27978515625,
-                "y": 311.3308410644531
+                "x": 527.3963623046875,
+                "y": 290.1514587402344
               },
               {
                 "id": "o_iie3guq_38ue",
@@ -4514,13 +4513,13 @@
                 "y": 187.3225860595703
               },
               "to": {
-                "x": 559.27978515625,
-                "y": 330.3308410644531
+                "x": 549.3963623046875,
+                "y": 309.1514587402344
               },
               "targetPlayerId": "o_fjt5puu_37x0"
             },
             {
-              "id": "act_gdmpt0z_6b2p",
+              "id": "act_60vsezg_7v7g",
               "type": "move",
               "actorId": "o_iie3guq_38ue",
               "from": {
@@ -4528,14 +4527,31 @@
                 "y": 312.65008544921875
               },
               "to": {
-                "x": 382.9290771484375,
-                "y": 332.4386291503906
+                "x": 384.3226623535156,
+                "y": 354.3340759277344
+              },
+              "targetPlayerId": null,
+              "delayed": true,
+              "control": null
+            },
+            {
+              "id": "act_5hrk9dy_890e",
+              "type": "move",
+              "actorId": "o_uv7h46s_39i4",
+              "from": {
+                "x": 324.8826599121094,
+                "y": 187.3225860595703
+              },
+              "to": {
+                "x": 138.28929138183594,
+                "y": 295.5
               },
               "targetPlayerId": null,
               "control": {
-                "x": 204.83212280273438,
-                "y": 339.0348205566406
-              }
+                "x": 197.12335205078125,
+                "y": 224.63169860839844
+              },
+              "delayed": true
             }
           ],
           "showPreviousStep": false
@@ -4549,22 +4565,22 @@
                 "id": "o_fjt5puu_37x0",
                 "side": "offense",
                 "number": 1,
-                "x": 537.27978515625,
-                "y": 311.3308410644531
+                "x": 527.3963623046875,
+                "y": 290.1514587402344
               },
               {
                 "id": "o_iie3guq_38ue",
                 "side": "offense",
                 "number": 2,
-                "x": 382.9290771484375,
-                "y": 332.4386291503906
+                "x": 384.3226623535156,
+                "y": 354.3340759277344
               },
               {
                 "id": "o_uv7h46s_39i4",
                 "side": "offense",
                 "number": 3,
-                "x": 324.8826599121094,
-                "y": 187.3225860595703
+                "x": 138.28929138183594,
+                "y": 295.5
               },
               {
                 "id": "o_moak56t_3ajg",
@@ -4582,33 +4598,19 @@
               }
             ],
             "ball": {
-              "x": 559.27978515625,
-              "y": 330.3308410644531,
+              "x": 549.3963623046875,
+              "y": 309.1514587402344,
               "ownerId": "o_fjt5puu_37x0"
             }
           },
           "actions": [
             {
-              "id": "act_ccoa6oy_6x0a",
-              "type": "move",
-              "actorId": "o_uv7h46s_39i4",
-              "from": {
-                "x": 324.8826599121094,
-                "y": 187.3225860595703
-              },
-              "to": {
-                "x": 149.42417907714844,
-                "y": 306.05389404296875
-              },
-              "targetPlayerId": null
-            },
-            {
               "id": "act_ydj4mc8_6zay",
               "type": "move",
               "actorId": "o_iie3guq_38ue",
               "from": {
-                "x": 382.9290771484375,
-                "y": 332.4386291503906
+                "x": 384.3226623535156,
+                "y": 354.3340759277344
               },
               "to": {
                 "x": 335.4365539550781,
@@ -4617,7 +4619,7 @@
               "targetPlayerId": null
             }
           ],
-          "showPreviousStep": false
+          "showPreviousStep": true
         },
         {
           "id": "step_0owuxlm_7447",
@@ -4628,8 +4630,8 @@
                 "id": "o_fjt5puu_37x0",
                 "side": "offense",
                 "number": 1,
-                "x": 537.27978515625,
-                "y": 311.3308410644531
+                "x": 527.3963623046875,
+                "y": 290.1514587402344
               },
               {
                 "id": "o_iie3guq_38ue",
@@ -4642,8 +4644,8 @@
                 "id": "o_uv7h46s_39i4",
                 "side": "offense",
                 "number": 3,
-                "x": 149.42417907714844,
-                "y": 306.05389404296875
+                "x": 138.28929138183594,
+                "y": 295.5
               },
               {
                 "id": "o_moak56t_3ajg",
@@ -4661,8 +4663,8 @@
               }
             ],
             "ball": {
-              "x": 559.27978515625,
-              "y": 330.3308410644531,
+              "x": 549.3963623046875,
+              "y": 309.1514587402344,
               "ownerId": "o_fjt5puu_37x0"
             }
           },
@@ -4672,8 +4674,8 @@
               "type": "pass",
               "actorId": "o_fjt5puu_37x0",
               "from": {
-                "x": 537.27978515625,
-                "y": 311.3308410644531
+                "x": 527.3963623046875,
+                "y": 290.1514587402344
               },
               "to": {
                 "x": 357.4365539550781,
@@ -4682,7 +4684,7 @@
               "targetPlayerId": "o_iie3guq_38ue"
             }
           ],
-          "showPreviousStep": false
+          "showPreviousStep": true
         }
       ],
       "categoryId": "category_cve56a7_wttd"
