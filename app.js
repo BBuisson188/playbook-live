@@ -512,6 +512,7 @@
   }
 
   function setTool(tool) {
+    if (tool === 'erase' && state.selected) deleteSelected();
     state.tool = tool;
     state.selected = null;
     state.draftAction = null;
@@ -870,10 +871,11 @@
 
   function deleteSelected() {
     if (!state.selected) return;
+    const selected = state.selected;
     checkpoint();
-    if (state.selected.kind === 'player') removePlayer(state.selected.id);
-    if (state.selected.kind === 'ball') currentStep().entities.ball = null;
-    if (state.selected.kind === 'action') removeAction(state.selected.id);
+    if (selected.kind === 'player') removePlayer(selected.id);
+    if (selected.kind === 'ball') currentStep().entities.ball = null;
+    if (selected.kind === 'action') removeAction(selected.id);
     state.selected = null;
     recomputeFollowingStepsFrom(state.currentStepIndex);
     renderCreate();
