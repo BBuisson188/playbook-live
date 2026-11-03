@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "exportedAt": "2026-11-03T01:47:57.788Z",
+  "exportedAt": "2026-11-03T01:49:29.455Z",
   "app": "Playbook Live",
   "categories": [
     {
@@ -10,7 +10,7 @@
     },
     {
       "id": "category_cve56a7_wttd",
-      "name": "Man offense",
+      "name": "Offense",
       "hidden": false
     },
     {
@@ -34,7 +34,7 @@
       "categoryId": "category_cve56a7_wttd",
       "courtType": "half",
       "createdAt": "2026-10-27T11:15:02.404Z",
-      "updatedAt": "2026-11-03T01:47:57.769Z",
+      "updatedAt": "2026-11-03T01:49:29.448Z",
       "steps": [
         {
           "id": "step_lti8avu_9l6s",
@@ -1752,7 +1752,7 @@
       "tags": [],
       "courtType": "half",
       "createdAt": "2026-05-09T11:39:53.978Z",
-      "updatedAt": "2026-10-27T00:25:12.426Z",
+      "updatedAt": "2026-11-03T01:48:56.155Z",
       "steps": [
         {
           "id": "step_criyzmg_uw3e",
@@ -2001,7 +2001,7 @@
           "showPreviousStep": true
         }
       ],
-      "categoryId": "category_cve56a7_wttd"
+      "categoryId": "category_b6ujsbf_fsv5"
     },
     {
       "schemaVersion": 1,
@@ -2011,7 +2011,7 @@
       "tags": [],
       "courtType": "half",
       "createdAt": "2026-05-09T11:36:36.060Z",
-      "updatedAt": "2026-10-27T00:24:46.815Z",
+      "updatedAt": "2026-11-03T01:48:59.729Z",
       "steps": [
         {
           "id": "step_zfvdsjm_qndo",
@@ -2354,7 +2354,7 @@
           "showPreviousStep": false
         }
       ],
-      "categoryId": "category_cve56a7_wttd"
+      "categoryId": "category_b6ujsbf_fsv5"
     },
     {
       "schemaVersion": 1,
@@ -4224,7 +4224,7 @@
       "tags": [],
       "courtType": "half",
       "createdAt": "2026-05-09T19:13:59.723Z",
-      "updatedAt": "2026-10-27T00:25:03.152Z",
+      "updatedAt": "2026-11-03T01:49:16.936Z",
       "steps": [
         {
           "id": "step_4j1wu86_2v1n",
@@ -4685,7 +4685,7 @@
           "showPreviousStep": false
         }
       ],
-      "categoryId": "category_ck3zi1e_wxx0"
+      "categoryId": "category_cve56a7_wttd"
     }
   ]
 }
